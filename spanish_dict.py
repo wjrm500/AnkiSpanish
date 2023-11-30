@@ -1,11 +1,12 @@
 import argparse
+import re
 from collections import Counter
 from functools import lru_cache
 from typing import List, Tuple
 
+import requests
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-import requests
 
 class SpanishDictScraper:
     requests_made = 0
@@ -27,10 +28,8 @@ class SpanishDictScraper:
     def direct_translate(self, spanish_word: str) -> List[str]:
         url = f"{self.base_url}/translate/{spanish_word}"
         soup = self._get_soup(url)
-        translation_div = soup.find("div", id="quickdef1-es")
-        if translation_div:
-            return translation_div.text.split(",")
-        return []
+        translation_divs: List[Tag] = soup.find_all("div", id=re.compile(r"quickdef\d+-es"))
+        return [div.text for div in translation_divs]
     
     """
     Retrieves a list of HTML table row elements from SpanishDict, each containing an example
