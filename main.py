@@ -15,6 +15,11 @@ logger = logging.getLogger(__name__)
 
 spanish_dict_scraper = SpanishDictScraper()
 
+"""
+Creates a new Anki note based on the original note, but with the fields `definition`, `spanish` and
+`english` populated with more accurate and consistent translation data scraped from SpanishDict. If
+no translation data is found, the original note is returned unmodified.
+"""
 async def create_new_note(col: Collection, model: NotetypeDict, original_note: Note) -> Note:
     new_note = col.new_note(model)
     readable_fields = ReadableFields(original_note.fields)
@@ -42,6 +47,10 @@ async def create_new_note(col: Collection, model: NotetypeDict, original_note: N
 rate_limit_event = asyncio.Event()
 rate_limit_event.set()
 semaphore = asyncio.Semaphore(3)
+"""
+This function is a wrapper around `create_new_note` that ensures only three notes can be created
+simultaneously, helping to avoid rate limiting by SpanishDict.
+"""
 async def limited_create_new_note(*args, **kwargs):
     async with semaphore:
         try:
@@ -58,6 +67,13 @@ async def limited_create_new_note(*args, **kwargs):
             logger.info("Rate limit deactivated")
             return await create_new_note(*args, **kwargs)
 
+"""
+The main function. Creates a new Anki note for each card in the deck "A Frequency Dictionary of
+Spanish", populating the fields `definition`, `spanish` and `english` with more accurate and
+consistent translation data scraped from SpanishDict. The new notes are added to the deck "A
+Frequency Dictionary of Spanish (Edited)". If the deck "A Frequency Dictionary of Spanish" does not
+exist, the program exits.
+"""
 async def main():
     collection_path = "C:\\Users\\wjrm5\\AppData\\Roaming\\Anki2\\User 1\\collection.anki2"
     

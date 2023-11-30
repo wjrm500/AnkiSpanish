@@ -18,14 +18,26 @@ class SpanishDictScraper:
         self.base_url = "https://www.spanishdict.com"
         self.session = None
 
+    """
+    Starts an asynchronous HTTP session.
+    """
     async def start_session(self):
         if self.session is None or self.session.closed:
             self.session = aiohttp.ClientSession()
 
+    """
+    Closes the asynchronous HTTP session.
+    """
     async def close_session(self):
         if self.session:
             await self.session.close()
 
+    """
+    Checks if the scraper is rate-limited by the SpanishDict server.
+
+    This method makes a GET request to the base URL of SpanishDict to determine if the response
+    status is TOO_MANY_REQUESTS (429), indicating rate-limiting.
+    """
     async def rate_limited(self) -> bool:
         if not self.session or self.session.closed:
             await self.start_session()
@@ -45,7 +57,8 @@ class SpanishDictScraper:
             return BeautifulSoup(await response.text(), "html.parser")
 
     """
-    For a given Spanish word, returns a list of English translations taken from the dictionary.
+    For a given Spanish word, returns a list of English translations taken from the SpanishDict
+    dictionary.
     """
     async def direct_translate(self, spanish_word: str) -> List[str]:
         url = f"{self.base_url}/translate/{spanish_word}"
@@ -54,8 +67,9 @@ class SpanishDictScraper:
         return [div.text for div in translation_divs]
     
     """
-    Retrieves a list of HTML table row elements from SpanishDict, each containing an example
-    sentence in Spanish and its English translation for the given Spanish word.
+    For a given Spanish word, retrieves a list of HTML table row elements from SpanishDict, each
+    containing an example Spanish sentence containing the word and the English translation for that
+    sentence.
     """
     @async_lru.alru_cache(maxsize=128)
     async def _example_rows(self, spanish_word: str) -> List[Tag]:
@@ -64,17 +78,17 @@ class SpanishDictScraper:
         return soup.find_all("tr", {"data-testid": "example-row"})
     
     """
-    Standardises a given translation by converting it to lowercase and removing any leading or trailing
-    punctuation or whitespace.
+    Standardises a given translation by converting it to lowercase and removing any leading or
+    trailing punctuation or whitespace.
     """
     def _standardise_translation(self, translation: str) -> str:
         return translation.lower().strip(".,;:!?")
 
     """
     For a given Spanish word, returns a list of English translations taken from example sentences.
-    A maximum of twenty example sentences are used, and only translations that appear at least five
-    times are included in the returned list. If no translations appear at least five times, the most
-    common translation is returned.
+    A maximum of twenty example sentences are considered, and only translations that appear in at
+    least five sentences are included in the returned list. If no translations appear in at least
+    five sentences, the most common translation is returned.
     """
     async def example_translate(self, spanish_word: str) -> List[str]:
         example_rows = await self._example_rows(spanish_word)
@@ -93,10 +107,12 @@ class SpanishDictScraper:
         return most_common_translations or [translations_counter.most_common(1)[0][0]]
     
     """
-    For a given spanish_word and english_translation, iterates over the Spanish / English sentence
-    translation examples given by SpanishDict for spanish_word until one is found where the keyword
-    of the English sentence translation equals english_translation, then returns the Spanish and
-    English sentences as a tuple of the form ("Spanish sentence", "English sentence").
+    For a given Spanish word and English translation, iterates over the sentence examples given for
+    the Spanish word by SpanishDict until one is found where the translated word in the English
+    sentence equals the English translation inputted into the method, then returns the corresponding
+    sentence example as a tuple of the form ("Spanish sentence", "English sentence"). The idea is
+    to filter to a sentence example that uses the specific translation of the Spanish word that we
+    are interested in.
     """
     async def sentence_example(self, spanish_word: str, english_translation: str) -> Tuple[str, str]:
         example_rows = await self._example_rows(spanish_word)
