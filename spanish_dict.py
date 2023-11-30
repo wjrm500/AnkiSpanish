@@ -53,6 +53,18 @@ class SpanishDictScraper:
         most_common_words = [x for x, y in words_counter.items() if y >= 5]
         return most_common_words or [words_counter.most_common()[0][0]]
     
+    def sentence_example(self, spanish_word: str, english_translation: str) -> Tuple[str, str]:
+        example_rows = self._example_rows(spanish_word)
+        for row in example_rows:
+            english_sentence = row.find("div", {"lang": "en"})
+            if english_sentence:
+                strong_tag = english_sentence.find("strong")
+                if strong_tag and strong_tag.text == english_translation:
+                    spanish_sentence = row.find("div", {"lang": "es"})
+                    if spanish_sentence:
+                        return spanish_sentence.text, english_sentence.text
+        return "", ""
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Translate Spanish words to English.")
     parser.add_argument("--word", type=str, help="Spanish word to translate", required=True)
@@ -62,4 +74,8 @@ if __name__ == "__main__":
     print(f"Direct translations: {scraper.direct_translate(args.word)}")
     example_translations = scraper.example_translate(args.word)
     print(f"Example translations: {example_translations}")
+    for example_translation in example_translations:
+        spanish_sentence, english_sentence = scraper.sentence_example(args.word, example_translation)
+        print(f"Example Spanish sentence for '{args.word}' / '{example_translation}': {spanish_sentence}")
+        print(f"Example English sentence for '{args.word}' / '{example_translation}': {english_sentence}")
     print(f"Requests made: {scraper.requests_made}")
