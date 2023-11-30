@@ -46,8 +46,9 @@ async def create_new_note(col: Collection, model: NotetypeDict, original_note: N
     return new_note
 
 rate_limit_event = asyncio.Event()
-rate_limit_event.set()
-semaphore = asyncio.Semaphore(3)
+rate_limit_event.set()  # Setting the event allows all coroutines to proceed
+rate_limit_handling_event = asyncio.Event()
+semaphore = asyncio.Semaphore(5)
 """
 This function is a wrapper around `create_new_note` that ensures only three notes can be created
 simultaneously, helping to avoid rate limiting by SpanishDict.
@@ -57,15 +58,22 @@ async def limited_create_new_note(*args, **kwargs):
         try:
             return await create_new_note(*args, **kwargs)
         except RateLimitException:
-            reset_time = 30
-            logger.error(f"Rate limit activated. Waiting {reset_time} seconds...")
-            rate_limit_event.clear()
-            await asyncio.sleep(reset_time)
-            while await spanish_dict_scraper.rate_limited():
-                logger.error(f"Rate limit still active. Waiting {reset_time} seconds...")
+            # Check if this coroutine is the first to handle the rate limit
+            if not rate_limit_handling_event.is_set():
+                rate_limit_handling_event.set()  # Indicate that rate limit handling is in progress
+                reset_time = 30
+                logger.error(f"Rate limit activated. Waiting {reset_time} seconds...")
+                rate_limit_event.clear()
                 await asyncio.sleep(reset_time)
-            rate_limit_event.set()
-            logger.info("Rate limit deactivated")
+                while await spanish_dict_scraper.rate_limited():
+                    logger.error(f"Rate limit still active. Waiting {reset_time} seconds...")
+                    await asyncio.sleep(reset_time)
+                rate_limit_event.set()
+                rate_limit_handling_event.clear()  # Indicate that rate limit handling is complete
+                logger.info("Rate limit deactivated")
+            else:
+                # Wait for the first coroutine to finish handling the rate limit
+                await rate_limit_event.wait()
             return await create_new_note(*args, **kwargs)
 
 """
@@ -110,7 +118,6 @@ async def main():
         # Process tasks as they complete
         notes_created = 0
         for task in asyncio.as_completed(tasks):
-            await rate_limit_event.wait()
             new_note: Note = await task
             col.add_note(note=new_note, deck_id=new_deck_id)
             notes_created += 1
