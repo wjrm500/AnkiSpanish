@@ -71,6 +71,8 @@ class SpanishDictScraper:
     """
     def example_translate(self, spanish_word: str) -> List[str]:
         translations = self._translations_from_examples(spanish_word)
+        if not translations:
+            return []
         translations = list(map(self._standardise_translation, translations))
         translations_counter = Counter(translations)
         most_common_translations = [x for x, y in translations_counter.items() if y >= 5]
