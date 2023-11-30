@@ -83,7 +83,7 @@ class SpanishDictScraper:
     trailing punctuation or whitespace.
     """
     def _standardise_translation(self, translation: str) -> str:
-        return translation.lower().strip(".,;:!?")
+        return translation.lower().strip(".,;:!?-")
 
     """
     For a given Spanish word, returns a list of English translations taken from example sentences.
