@@ -61,9 +61,13 @@ def main():
 
         logger.info(f"Processing {len(card_ids)} cards from '{original_deck_name}'")
         model = col.models.by_name("A Frequency Dictionary of Spanish")
+        notes_created = 0
         for cid in card_ids:
             original_card = col.get_card(cid)
-            new_note = create_new_note(col, model, original_card.note())
+            original_note = original_card.note()
+            logger.info(f"Creating note #{notes_created + 1} for '{original_note.fields[1]}'")
+            new_note = create_new_note(col, model, original_note)
+            notes_created += 1
             col.add_note(note=new_note, deck_id=new_deck_id)
 
     else:
