@@ -58,25 +58,24 @@ class SpanishDictScraper:
         return translations
     
     """
-    Standardises a given word by converting it to lowercase and removing any leading or trailing
+    Standardises a given translation by converting it to lowercase and removing any leading or trailing
     punctuation or whitespace.
     """
-    def _standardise_word(self, word: str) -> str:
-        return word.lower().strip(".,;:!? ")
+    def _standardise_translation(self, translation: str) -> str:
+        return translation.lower().strip(".,;:!?")
 
     """
     For a given Spanish word, returns a list of English translations taken from example sentences.
-    A maximum of twenty example sentences are used, and only words that appear at least five times
-    are included in the returned list. If no words appear at least five times, the most common word
-    is returned.
+    A maximum of twenty example sentences are used, and only translations that appear at least five
+    times are included in the returned list. If no translations appear at least five times, the most
+    common translation is returned.
     """
     def example_translate(self, spanish_word: str) -> List[str]:
-        examples = self._translations_from_examples(spanish_word)
-        words = " ".join(examples).split()
-        words = list(map(self._standardise_word, words))
-        words_counter = Counter(words)
-        most_common_words = [x for x, y in words_counter.items() if y >= 5]
-        return most_common_words or [words_counter.most_common()[0][0]]
+        translations = self._translations_from_examples(spanish_word)
+        translations = list(map(self._standardise_translation, translations))
+        translations_counter = Counter(translations)
+        most_common_translations = [x for x, y in translations_counter.items() if y >= 5]
+        return most_common_translations or [translations_counter.most_common()[0][0]]
     
     """
     For a given spanish_word and english_translation, iterates over the Spanish / English sentence
@@ -98,9 +97,11 @@ class SpanishDictScraper:
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Translate Spanish words to English.")
-    parser.add_argument("--word", type=str, help="Spanish word to translate", required=True)
+    parser.add_argument("--word", type=str, help="Spanish word to translate")
     args = parser.parse_args()
+    args.word = args.word or "hola"
 
+    print(f"Translating '{args.word}'...")
     scraper = SpanishDictScraper()
     print(f"Direct translations: {scraper.direct_translate(args.word)}")
     example_translations = scraper.example_translate(args.word)
