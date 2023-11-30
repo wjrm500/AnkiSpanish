@@ -24,12 +24,13 @@ async def create_new_note(col: Collection, model: NotetypeDict, original_note: N
     new_note = col.new_note(model)
     readable_fields = ReadableFields(original_note.fields)
     spanish_word = readable_fields.word
-    english_translations = await spanish_dict_scraper.example_translate(spanish_word)
+    verb = readable_fields.part_of_speech == "v"
+    english_translations = await spanish_dict_scraper.example_translate(spanish_word, verb)
     if english_translations:
         spanish_sentences, english_sentences = [], []
         for english_translation in english_translations:
             new_spanish_sentence, new_english_sentence = await spanish_dict_scraper.sentence_example(
-                spanish_word, english_translation
+                spanish_word, english_translation, verb
             )
             spanish_sentences.append(new_spanish_sentence)
             english_sentences.append(new_english_sentence)

@@ -9,6 +9,7 @@ import aiohttp
 import async_lru
 from bs4 import BeautifulSoup
 from bs4.element import Tag
+from textblob import Word
 
 from exceptions import RateLimitException
 
@@ -43,6 +44,7 @@ class SpanishDictScraper:
         if not self.session or self.session.closed:
             await self.start_session()
         async with self.session.get(self.base_url) as response:
+            self.requests_made += 1
             return response.status == HTTPStatus.TOO_MANY_REQUESTS
 
     """
@@ -82,8 +84,9 @@ class SpanishDictScraper:
     Standardises a given translation by converting it to lowercase and removing any leading or
     trailing punctuation or whitespace.
     """
-    def _standardise_translation(self, translation: str) -> str:
-        return translation.lower().strip(".,;:!?-")
+    def _standardise_translation(self, translation: str, verb: bool) -> str:
+        translation = translation.lower().strip(".,;:!?-")
+        return Word(translation).lemmatize("v") if verb else translation
 
     """
     For a given Spanish word, returns a list of English translations taken from example sentences.
@@ -91,7 +94,7 @@ class SpanishDictScraper:
     least five sentences are included in the returned list. If no translations appear in at least
     five sentences, the most common translation is returned.
     """
-    async def example_translate(self, spanish_word: str) -> List[str]:
+    async def example_translate(self, spanish_word: str, verb: bool = False) -> List[str]:
         example_rows = await self._example_rows(spanish_word)
         translations = []
         for example in example_rows:
@@ -102,7 +105,7 @@ class SpanishDictScraper:
                     translations.append(strong_tag.text)
         if not translations:
             return []
-        translations = list(map(self._standardise_translation, translations))
+        translations = [self._standardise_translation(t, verb) for t in translations]
         translations_counter = Counter(translations)
         most_common_translations = [x for x, y in translations_counter.items() if y >= 5]
         return most_common_translations or [translations_counter.most_common(1)[0][0]]
@@ -115,26 +118,31 @@ class SpanishDictScraper:
     to filter to a sentence example that uses the specific translation of the Spanish word that we
     are interested in.
     """
-    async def sentence_example(self, spanish_word: str, english_translation: str) -> Tuple[str, str]:
+    async def sentence_example(
+        self, spanish_word: str, english_translation: str, verb: bool = False
+    ) -> Tuple[str, str]:
         example_rows = await self._example_rows(spanish_word)
         for row in example_rows:
             english_sentence = row.find("div", {"lang": "en"})
             if english_sentence:
                 strong_tag = english_sentence.find("strong")
-                if strong_tag and strong_tag.text == english_translation:
+                if strong_tag and \
+                    self._standardise_translation(strong_tag.text, verb) == english_translation:
                     spanish_sentence = row.find("div", {"lang": "es"})
                     if spanish_sentence:
                         return spanish_sentence.text, english_sentence.text
         return "", ""
 
-async def main(spanish_word: str = "hola"):
+async def main(spanish_word: str = "hola", verb: bool = False):
     scraper = SpanishDictScraper()
     direct_translations = await scraper.direct_translate(spanish_word)
     print(f"Direct translations: {direct_translations}")
-    example_translations = await scraper.example_translate(spanish_word)
+    example_translations = await scraper.example_translate(spanish_word, verb)
     print(f"Example translations: {example_translations}")
     for example_translation in example_translations:
-        spanish_sentence, english_sentence = await scraper.sentence_example(spanish_word, example_translation)
+        spanish_sentence, english_sentence = await scraper.sentence_example(
+            spanish_word, example_translation, verb
+        )
         print(f"Example Spanish sentence for '{spanish_word}' / '{example_translation}': {spanish_sentence}")
         print(f"Example English sentence for '{spanish_word}' / '{example_translation}': {english_sentence}")
     print(f"Requests made: {scraper.requests_made}")
@@ -143,8 +151,9 @@ async def main(spanish_word: str = "hola"):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Translate Spanish words to English.")
     parser.add_argument("--word", type=str, help="Spanish word to translate")
+    parser.add_argument("--verb", action="store_true", help="Whether the word is a verb")
     args = parser.parse_args()
     args.word = args.word or "hola"
 
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(args.word))
+    asyncio.run(main(spanish_word=args.word, verb=args.verb))
