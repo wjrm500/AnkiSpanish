@@ -89,8 +89,9 @@ async def main():
     original_deck_name = "A Frequency Dictionary of Spanish"
     new_deck_name = "A Frequency Dictionary of Spanish (Edited)"
 
-    if original_deck_name in col.decks.all_names():
-        if new_deck_name not in col.decks.all_names():
+    deck_names = [deck.name for deck in col.decks.all_names_and_ids()]
+    if original_deck_name in deck_names:
+        if new_deck_name not in deck_names:
             logger.info(f"Creating new deck '{new_deck_name}'")
             col.decks.id(new_deck_name)  # This creates a new deck
 
