@@ -1,3 +1,4 @@
+import argparse
 from collections import Counter
 from typing import List
 
@@ -33,7 +34,7 @@ class SpanishDictScraper:
         return translations
     
     def _standardise_word(self, word: str) -> str:
-        return word.lower().strip(".,")
+        return word.lower().strip("., ")
 
     def example_translate(self, spanish_word: str) -> List[str]:
         examples = self._translations_from_examples(spanish_word)
@@ -44,6 +45,10 @@ class SpanishDictScraper:
         return most_common_words or [words_counter.most_common()[0][0]]
     
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Translate Spanish words to English.")
+    parser.add_argument("--word", type=str, help="Spanish word to translate", required=True)
+    args = parser.parse_args()
+
     scraper = SpanishDictScraper()
-    print("Direct translate: ", scraper.direct_translate("hola"))
-    print("Example translate: ", scraper.example_translate("hola"))
+    print("Direct translate: ", scraper.direct_translate(args.word))
+    print("Example translate: ", scraper.example_translate(args.word))
