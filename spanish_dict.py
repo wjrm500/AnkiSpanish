@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import re
 from collections import Counter
 from http import HTTPStatus
@@ -125,20 +126,25 @@ class SpanishDictScraper:
                     if spanish_sentence:
                         return spanish_sentence.text, english_sentence.text
         return "", ""
-    
+
+async def main(spanish_word: str = "hola"):
+    scraper = SpanishDictScraper()
+    direct_translations = await scraper.direct_translate(spanish_word)
+    print(f"Direct translations: {direct_translations}")
+    example_translations = await scraper.example_translate(spanish_word)
+    print(f"Example translations: {example_translations}")
+    for example_translation in example_translations:
+        spanish_sentence, english_sentence = await scraper.sentence_example(spanish_word, example_translation)
+        print(f"Example Spanish sentence for '{spanish_word}' / '{example_translation}': {spanish_sentence}")
+        print(f"Example English sentence for '{spanish_word}' / '{example_translation}': {english_sentence}")
+    print(f"Requests made: {scraper.requests_made}")
+    await scraper.close_session()
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Translate Spanish words to English.")
     parser.add_argument("--word", type=str, help="Spanish word to translate")
     args = parser.parse_args()
     args.word = args.word or "hola"
 
-    print(f"Translating '{args.word}'...")
-    scraper = SpanishDictScraper()
-    print(f"Direct translations: {scraper.direct_translate(args.word)}")
-    example_translations = scraper.example_translate(args.word)
-    print(f"Example translations: {example_translations}")
-    for example_translation in example_translations:
-        spanish_sentence, english_sentence = scraper.sentence_example(args.word, example_translation)
-        print(f"Example Spanish sentence for '{args.word}' / '{example_translation}': {spanish_sentence}")
-        print(f"Example English sentence for '{args.word}' / '{example_translation}': {english_sentence}")
-    print(f"Requests made: {scraper.requests_made}")
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.run(main(args.word))
