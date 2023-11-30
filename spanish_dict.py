@@ -1,31 +1,40 @@
 import argparse
 from collections import Counter
-from typing import List
+from functools import lru_cache
+from typing import List, Tuple
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 import requests
 
 class SpanishDictScraper:
+    requests_made = 0
+
     def __init__(self):
         self.base_url = "https://www.spanishdict.com"
 
+    def _get_soup(self, url: str) -> BeautifulSoup:
+        response = requests.get(url)
+        self.requests_made += 1
+        return BeautifulSoup(response.text, "html.parser")
+
     def direct_translate(self, spanish_word: str) -> List[str]:
         url = f"{self.base_url}/translate/{spanish_word}"
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = self._get_soup(url)
         translation_div = soup.find("div", id="quickdef1-es")
         if translation_div:
             return translation_div.text.split(",")
         return []
+    
+    @lru_cache(maxsize=64)
+    def _example_rows(self, spanish_word: str) -> List[Tag]:
+        url = f"{self.base_url}/examples/{spanish_word}?lang=es"
+        soup = self._get_soup(url)
+        return soup.find_all("tr", {"data-testid": "example-row"})
 
     def _translations_from_examples(self, spanish_word: str) -> List[str]:
-        url = f"{self.base_url}/examples/{spanish_word}?lang=es"
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, "html.parser")
-        examples: List[Tag] = soup.find_all("tr", {"data-testid": "example-row"})
         translations = []
-        for example in examples:
+        for example in self._example_rows(spanish_word):
             english_sentence = example.find("div", {"lang": "en"})
             if english_sentence:
                 strong_tag = english_sentence.find("strong")
@@ -50,5 +59,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     scraper = SpanishDictScraper()
-    print("Direct translate: ", scraper.direct_translate(args.word))
-    print("Example translate: ", scraper.example_translate(args.word))
+    print(f"Direct translations: {scraper.direct_translate(args.word)}")
+    example_translations = scraper.example_translate(args.word)
+    print(f"Example translations: {example_translations}")
+    print(f"Requests made: {scraper.requests_made}")
