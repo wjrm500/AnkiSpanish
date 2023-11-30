@@ -7,18 +7,15 @@ from anki.notes import Note
 
 from readable_fields import ReadableFields
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# A function to create a new note from an existing note
 def create_new_note(col: Collection, model: NotetypeDict, original_note: Note) -> Note:
     new_note = col.new_note(model)
     readable_fields = ReadableFields(original_note.fields)
     # readable_fields.definition = "Test"
     new_note.fields = readable_fields.retrieve()
 
-# The main function
 def main():
     collection_path = "C:\\Users\\wjrm5\\AppData\\Roaming\\Anki2\\User 1\\collection.anki2"
     
@@ -26,11 +23,9 @@ def main():
         logger.error(f"Collection not found at {collection_path}")
         return
 
-    # Load the collection
     logger.info(f"Loading collection from {collection_path}")
     col = Collection(collection_path)
 
-    # Check for deck existence and create if necessary
     original_deck_name = "A Frequency Dictionary of Spanish"
     new_deck_name = "A Frequency Dictionary of Spanish (Edited)"
 
@@ -39,7 +34,6 @@ def main():
             logger.info(f"Creating new deck '{new_deck_name}'")
             col.decks.id(new_deck_name)  # This creates a new deck
 
-        # Process cards in the original deck
         original_deck_id = col.decks.id(original_deck_name)
         new_deck_id = col.decks.id(new_deck_name)
         card_ids = col.decks.cids(original_deck_id)
@@ -56,7 +50,6 @@ def main():
         col.close()
         return
 
-    # Save changes and close the collection
     col.save()
     col.close()
     logger.info("Processing complete")
