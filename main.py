@@ -1,45 +1,15 @@
-import copy
 import os
 import logging
-from typing import List
 
 from anki.storage import Collection
 from anki.models import NotetypeDict
 from anki.notes import Note
 
+from readable_fields import ReadableFields
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# A class to make field manipulation more readable
-class ReadableFields:
-    rank: str
-    word: str
-    part_of_speech: str
-    definition: str
-    spanish: str
-    english: str
-    freq: str
-
-    def __init__(self, fields: List) -> None:
-        self.rank = fields[0]
-        self.word = fields[1]
-        self.part_of_speech = fields[2]
-        self.definition = fields[3]
-        self.spanish = fields[4]
-        self.english = fields[5]
-        self.freq = fields[6]
-    
-    def retrieve(self) -> List:
-        return [
-            self.rank,
-            self.word,
-            self.part_of_speech,
-            self.definition,
-            self.spanish,
-            self.english,
-            self.freq
-        ]
 
 # A function to create a new note from an existing note
 def create_new_note(col: Collection, model: NotetypeDict, original_note: Note) -> Note:
