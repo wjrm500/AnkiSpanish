@@ -4,12 +4,14 @@ import logging
 from typing import List
 
 from anki.storage import Collection
+from anki.models import NotetypeDict
 from anki.notes import Note
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# A class to make field manipulation more readable
 class ReadableFields:
     rank: str
     word: str
@@ -39,9 +41,14 @@ class ReadableFields:
             self.freq
         ]
 
-def modify_note(note: Note) -> Note:
-    return note
+# A function to create a new note from an existing note
+def create_new_note(col: Collection, model: NotetypeDict, original_note: Note) -> Note:
+    new_note = col.new_note(model)
+    readable_fields = ReadableFields(original_note.fields)
+    # readable_fields.definition = "Test"
+    new_note.fields = readable_fields.retrieve()
 
+# The main function
 def main():
     collection_path = "C:\\Users\\wjrm5\\AppData\\Roaming\\Anki2\\User 1\\collection.anki2"
     
@@ -71,11 +78,7 @@ def main():
         model = col.models.by_name("A Frequency Dictionary of Spanish")
         for cid in card_ids:
             original_card = col.get_card(cid)
-            original_note = original_card.note()
-            new_note = col.new_note(model)
-            readable_fields = ReadableFields(original_note.fields)
-            readable_fields.definition = "Test"
-            new_note.fields = readable_fields.retrieve()
+            new_note = create_new_note(col, model, original_card.note())
             col.add_note(note=new_note, deck_id=new_deck_id)
 
     else:
