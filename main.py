@@ -111,10 +111,10 @@ async def main():
         notes_created = 0
         for task in asyncio.as_completed(tasks):
             await rate_limit_event.wait()
-            new_note = await task
+            new_note: Note = await task
             col.add_note(note=new_note, deck_id=new_deck_id)
             notes_created += 1
-            logger.info(f"Note #{notes_created} added")
+            logger.info(f"Note #{notes_created} added: {ReadableFields(new_note.fields).word}")
 
     else:
         logger.error(f"Deck '{original_deck_name}' not found")
