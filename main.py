@@ -6,15 +6,36 @@ from anki.models import NotetypeDict
 from anki.notes import Note
 
 from readable_fields import ReadableFields
+from spanish_dict import SpanishDictScraper
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+spanish_dict_scraper = SpanishDictScraper()
+
 def create_new_note(col: Collection, model: NotetypeDict, original_note: Note) -> Note:
+    logger.info(f"Creating new note for '{original_note.fields[1]}'")
     new_note = col.new_note(model)
     readable_fields = ReadableFields(original_note.fields)
-    # readable_fields.definition = "Test"
+    spanish_word = readable_fields.word
+    english_translations = spanish_dict_scraper.example_translate(spanish_word)
+    spanish_sentences, english_sentences = [], []
+    for english_translation in english_translations:
+        new_spanish_sentence, new_english_sentence = spanish_dict_scraper.sentence_example(
+            spanish_word, english_translation
+        )
+        spanish_sentences.append(new_spanish_sentence)
+        english_sentences.append(new_english_sentence)
+    readable_fields.definition = "; ".join(english_translations)
+    combine_sentences = lambda sentences: (
+        sentences[0] if len(sentences) == 1 else "<br>".join(
+            [f"<span style='color: darkgray'>[{i}]</span> {s}" for i, s in enumerate(sentences, 1)]
+        )
+    )
+    readable_fields.spanish = combine_sentences(spanish_sentences)
+    readable_fields.english = combine_sentences(english_sentences)
     new_note.fields = readable_fields.retrieve()
+    return new_note
 
 def main():
     collection_path = "C:\\Users\\wjrm5\\AppData\\Roaming\\Anki2\\User 1\\collection.anki2"
@@ -50,7 +71,6 @@ def main():
         col.close()
         return
 
-    col.save()
     col.close()
     logger.info("Processing complete")
 
