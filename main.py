@@ -123,7 +123,7 @@ async def main():
 
     col.close()
     await spanish_dict_scraper.close_session()
-    logger.info("Processing complete")
+    logger.info(f"Processing complete. Total requests made: {spanish_dict_scraper.requests_made}")
 
 if __name__ == "__main__":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
