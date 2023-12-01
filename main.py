@@ -8,7 +8,7 @@ from anki.notes import Note
 
 from exceptions import RateLimitException
 from readable_fields import ReadableFields
-from sentences import Keyword
+from sentences import SentencePairCollection, SpanishKeyword
 from spanish_dict import SpanishDictScraper
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -25,14 +25,17 @@ async def create_new_note(col: Collection, model: NotetypeDict, original_note: N
     new_note = col.new_note(model)
     readable_fields = ReadableFields(original_note.fields)
     spanish_word = readable_fields.word
-    spanish_keyword = Keyword(text=spanish_word, verb=readable_fields.part_of_speech == "v")
-    english_keywords = await spanish_dict_scraper.example_translate(spanish_keyword)
+    spanish_keyword = SpanishKeyword(text=spanish_word, verb=readable_fields.part_of_speech == "v")
+    sentence_pairs = await spanish_dict_scraper.sentence_pairs_from_examples_pane(spanish_keyword)
+    sentence_pair_coll = SentencePairCollection(sentence_pairs)
+    english_keywords = sentence_pair_coll.most_common_english_keywords()
     if english_keywords:
         spanish_sentences, english_sentences = [], []
         for english_keyword in english_keywords:
-            sentence_pair = await spanish_dict_scraper.example_sentence_pair_for_specific_keywords(
-                spanish_keyword, english_keyword
-            )
+            filtered_sentence_pairs = sentence_pair_coll.filter_by_english_keyword(english_keyword)
+            if not filtered_sentence_pairs:
+                continue
+            sentence_pair = filtered_sentence_pairs[0]
             spanish_sentences.append(sentence_pair.spanish_sentence.text)
             english_sentences.append(sentence_pair.english_sentence.text)
         readable_fields.definition = "; ".join(
@@ -40,7 +43,10 @@ async def create_new_note(col: Collection, model: NotetypeDict, original_note: N
         )
         combine_sentences = lambda sentences: (
             sentences[0] if len(sentences) == 1 else "<br>".join(
-                [f"<span style='color: darkgray'>[{i}]</span> {s}" for i, s in enumerate(sentences, 1)]
+                [
+                    f"<span style='color: darkgray'>[{i}]</span> {s}"
+                    for i, s in enumerate(sentences, 1)
+                ]
             )
         )
         readable_fields.spanish = combine_sentences(spanish_sentences)
