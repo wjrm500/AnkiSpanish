@@ -4,7 +4,7 @@ import re
 import urllib.parse
 from collections import Counter
 from http import HTTPStatus
-from typing import Callable, List, Tuple
+from typing import List
 
 import aiohttp
 import async_lru

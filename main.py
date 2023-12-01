@@ -8,6 +8,7 @@ from anki.notes import Note
 
 from exceptions import RateLimitException
 from readable_fields import ReadableFields
+from sentences import Keyword
 from spanish_dict import SpanishDictScraper
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -24,17 +25,19 @@ async def create_new_note(col: Collection, model: NotetypeDict, original_note: N
     new_note = col.new_note(model)
     readable_fields = ReadableFields(original_note.fields)
     spanish_word = readable_fields.word
-    verb = readable_fields.part_of_speech == "v"
-    english_translations = await spanish_dict_scraper.example_translate(spanish_word, verb)
-    if english_translations:
+    spanish_keyword = Keyword(text=spanish_word, verb=readable_fields.part_of_speech == "v")
+    english_keywords = await spanish_dict_scraper.example_translate(spanish_keyword)
+    if english_keywords:
         spanish_sentences, english_sentences = [], []
-        for english_translation in english_translations:
-            new_spanish_sentence, new_english_sentence = await spanish_dict_scraper.sentence_example(
-                spanish_word, english_translation, verb
+        for english_keyword in english_keywords:
+            sentence_pair = await spanish_dict_scraper.example_sentence_pair_for_specific_keywords(
+                spanish_keyword, english_keyword
             )
-            spanish_sentences.append(new_spanish_sentence)
-            english_sentences.append(new_english_sentence)
-        readable_fields.definition = "; ".join(english_translations)
+            spanish_sentences.append(sentence_pair.spanish_sentence.text)
+            english_sentences.append(sentence_pair.english_sentence.text)
+        readable_fields.definition = "; ".join(
+            [keyword.standardize() for keyword in english_keywords]
+        )
         combine_sentences = lambda sentences: (
             sentences[0] if len(sentences) == 1 else "<br>".join(
                 [f"<span style='color: darkgray'>[{i}]</span> {s}" for i, s in enumerate(sentences, 1)]
