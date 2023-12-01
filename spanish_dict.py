@@ -1,17 +1,19 @@
 import argparse
 import asyncio
 import re
+import urllib.parse
 from collections import Counter
 from http import HTTPStatus
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 
 import aiohttp
 import async_lru
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-from textblob import Word
+
 
 from exceptions import RateLimitException
+from sentences import Keyword, SentencePair, SpanishSentence, EnglishSentence
 
 class SpanishDictScraper:
     requests_made = 0
@@ -75,40 +77,44 @@ class SpanishDictScraper:
     sentence.
     """
     @async_lru.alru_cache(maxsize=128)
-    async def _example_rows(self, spanish_word: str) -> List[Tag]:
-        url = f"{self.base_url}/examples/{spanish_word}?lang=es"
+    async def _example_sentence_pairs_from_examples_pane(
+        self, spanish_keyword: Keyword
+    ) -> List[SentencePair]:
+        url = f"{self.base_url}/examples/{spanish_keyword.text}?lang=es"
+        # url = urllib.parse.quote(url)
         soup = await self._get_soup(url)
-        return soup.find_all("tr", {"data-testid": "example-row"})
+        example_rows: List[Tag] = soup.find_all("tr", {"data-testid": "example-row"})
+        def find_keyword(sentence_div: Tag) -> Keyword:
+            return Keyword(text=sentence_div.find("strong").text, verb=spanish_keyword.verb)
+        sentence_pairs = []
+        for example in example_rows:
+            spanish_sentence_div = example.find("div", {"lang": "es"})
+            english_sentence_div = example.find("div", {"lang": "en"})
+            spanish_sentence = SpanishSentence(
+                text=spanish_sentence_div.text, keyword=find_keyword(spanish_sentence_div)
+            )
+            english_sentence = EnglishSentence(
+                text=english_sentence_div.text, keyword=find_keyword(english_sentence_div)
+            )
+            sentence_pairs.append(SentencePair(spanish_sentence, english_sentence))
+        return sentence_pairs
     
-    """
-    Standardises a given translation by converting it to lowercase and removing any leading or
-    trailing punctuation or whitespace.
-    """
-    def _standardise_translation(self, translation: str, verb: bool) -> str:
-        translation = translation.lower().strip(".,;:!?-")
-        return Word(translation).lemmatize("v") if verb else translation
-
     """
     For a given Spanish word, returns a list of English translations taken from example sentences.
     A maximum of twenty example sentences are considered, and only translations that appear in at
     least five sentences are included in the returned list. If no translations appear in at least
     five sentences, the most common translation is returned.
     """
-    async def example_translate(self, spanish_word: str, verb: bool = False) -> List[str]:
-        example_rows = await self._example_rows(spanish_word)
-        translations = []
-        for example in example_rows:
-            english_sentence = example.find("div", {"lang": "en"})
-            if english_sentence:
-                strong_tag = english_sentence.find("strong")
-                if strong_tag:
-                    translations.append(strong_tag.text)
-        if not translations:
+    async def example_translate(self, spanish_keyword: Keyword) -> List[Keyword]:
+        example_sentence_pairs = await self._example_sentence_pairs_from_examples_pane(
+            spanish_keyword
+        )
+        english_keywords = [pair.english_sentence.keyword for pair in example_sentence_pairs]
+        if not english_keywords:
             return []
-        translations = [self._standardise_translation(t, verb) for t in translations]
-        translations_counter = Counter(translations)
-        most_common_translations = [x for x, y in translations_counter.items() if y >= 5]
-        return most_common_translations or [translations_counter.most_common(1)[0][0]]
+        english_keywords_counter = Counter(english_keywords)
+        most_common_english_keywords = [x for x, y in english_keywords_counter.items() if y >= 5]
+        return most_common_english_keywords or [english_keywords_counter.most_common(1)[0][0]]
     
     """
     For a given Spanish word and English translation, iterates over the sentence examples given for
@@ -118,33 +124,31 @@ class SpanishDictScraper:
     to filter to a sentence example that uses the specific translation of the Spanish word that we
     are interested in.
     """
-    async def sentence_example(
-        self, spanish_word: str, english_translation: str, verb: bool = False
-    ) -> Tuple[str, str]:
-        example_rows = await self._example_rows(spanish_word)
-        for row in example_rows:
-            english_sentence = row.find("div", {"lang": "en"})
-            if english_sentence:
-                strong_tag = english_sentence.find("strong")
-                if strong_tag and \
-                    self._standardise_translation(strong_tag.text, verb) == english_translation:
-                    spanish_sentence = row.find("div", {"lang": "es"})
-                    if spanish_sentence:
-                        return spanish_sentence.text, english_sentence.text
-        return "", ""
+    async def example_sentence_pair_for_specific_keywords(
+        self, spanish_keyword: Keyword, english_keyword: Keyword
+    ) -> SentencePair | None:
+        example_sentence_pairs = await self._example_sentence_pairs_from_examples_pane(
+            spanish_keyword
+        )
+        for example_sentence_pair in example_sentence_pairs:
+            english_sentence = example_sentence_pair.english_sentence
+            if english_sentence.keyword == english_keyword:
+                return example_sentence_pair
+        return None
 
 async def main(spanish_word: str = "hola", verb: bool = False):
+    spanish_keyword = Keyword(text=spanish_word, verb=verb)
     scraper = SpanishDictScraper()
     direct_translations = await scraper.direct_translate(spanish_word)
     print(f"Direct translations: {direct_translations}")
-    example_translations = await scraper.example_translate(spanish_word, verb)
-    print(f"Example translations: {example_translations}")
-    for example_translation in example_translations:
-        spanish_sentence, english_sentence = await scraper.sentence_example(
-            spanish_word, example_translation, verb
+    english_keywords = await scraper.example_translate(spanish_keyword)
+    print(f"Example translations: {english_keywords}")
+    for english_keyword in english_keywords:
+        sentence_pair = await scraper.example_sentence_pair_for_specific_keywords(
+            spanish_keyword, english_keyword
         )
-        print(f"Example Spanish sentence for '{spanish_word}' / '{example_translation}': {spanish_sentence}")
-        print(f"Example English sentence for '{spanish_word}' / '{example_translation}': {english_sentence}")
+        print(f"Example Spanish sentence for '{spanish_keyword}' / '{english_keyword}': {sentence_pair.spanish_sentence}")
+        print(f"Example English sentence for '{spanish_keyword}' / '{english_keyword}': {sentence_pair.english_sentence}")
     print(f"Requests made: {scraper.requests_made}")
     await scraper.close_session()
 
