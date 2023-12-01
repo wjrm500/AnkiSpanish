@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import re
-import urllib.parse
 from collections import Counter
 from http import HTTPStatus
 from typing import List
@@ -81,7 +80,6 @@ class SpanishDictScraper:
         self, spanish_keyword: Keyword
     ) -> List[SentencePair]:
         url = f"{self.base_url}/examples/{spanish_keyword.text}?lang=es"
-        # url = urllib.parse.quote(url)
         soup = await self._get_soup(url)
         example_rows: List[Tag] = soup.find_all("tr", {"data-testid": "example-row"})
         def find_keyword(sentence_div: Tag) -> Keyword:
