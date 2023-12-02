@@ -131,6 +131,8 @@ class SpanishDictScraper:
                 )
             )
             sentence_pairs.append(SentencePair(spanish_sentence, english_sentence))
+        if not sentence_pairs:
+            raise ValueError(f"No translation data found for '{spanish_keyword}'")
         return sentence_pairs
     
     """
