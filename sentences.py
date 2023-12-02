@@ -50,6 +50,8 @@ class SentencePairCollection:
     sentence_pairs: List[SentencePair]
 
     def __init__(self, sentence_pairs: List[SentencePair]) -> None:
+        if not sentence_pairs:
+            raise ValueError("Sentence pairs cannot be empty.")
         self.sentence_pairs = sentence_pairs
         self.english_keywords = [pair.english_sentence.keyword for pair in self.sentence_pairs]
         self.english_keyword_counter = Counter(self.english_keywords)

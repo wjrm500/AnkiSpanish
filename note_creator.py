@@ -43,6 +43,10 @@ class NoteCreator:
         self, internal_note: InternalNote, sentence_pair_coll: SentencePairCollection,
         english_keywords: List[EnglishKeyword]
     ) -> AnkiNote:
+        if not sentence_pair_coll:
+            raise ValueError("No sentence pairs received.")
+        if not english_keywords:
+            raise ValueError("No English keywords received.")
         spanish_sentences, english_sentences = [], []
         for keyword in english_keywords:
             filtered_sentence_pairs = sentence_pair_coll.filter_by_english_keyword(keyword)
@@ -130,5 +134,5 @@ class NoteCreator:
                 else:
                     await self.rate_limit_event.wait()  # Wait for the first coroutine to finish handling the rate limit
                 return await note_creation_method(new_internal_note)
-            except Exception:
-                logger.error(f"Error processing '{new_internal_note.word}'")
+            except Exception as e:
+                logger.error(f"Error processing '{new_internal_note.word}': {e}")

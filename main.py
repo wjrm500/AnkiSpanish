@@ -68,6 +68,8 @@ async def main(access_limit: int, test_word: str):
         notes_created = 0
         for task in asyncio.as_completed(tasks):
             new_note: AnkiNote = await task
+            if not new_note:
+                continue
             coll.add_note(note=new_note, deck_id=new_deck_id)
             notes_created += 1
             logger.info(
