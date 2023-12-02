@@ -76,13 +76,31 @@ class SpanishDictScraper:
     whether the keyword is a verb. The language parameter is used to determine whether the keyword
     is Spanish or English.
     """
-    def find_keyword(self, sentence_div: Tag, verb: bool, language: Language) -> Keyword:
+    def _find_keyword(self, sentence_div: Tag, verb: bool, language: Language) -> Keyword:
         if language == Language.SPANISH:
             return SpanishKeyword(text=sentence_div.find("strong").text, verb=verb)
         elif language == Language.ENGLISH:
             return EnglishKeyword(text=sentence_div.find("strong").text, verb=verb)
         else:
             raise ValueError(f"Invalid language: {language}")
+    
+    """
+    Filters a list of EnglishKeyword objects by the verb pattern. If the keyword is a verb, it must
+    start with "to ", and if it is not a verb, it must not start with "to ". This is to avoid issues
+    with Spanish keywords that are marked as either a noun or a verb but are translated as both,
+    such as "atardecer", which means both "dusk" (noun) or "to get dark" (verb).
+    """
+    def _filter_english_keywords_by_verb_pattern(
+        self, english_keywords: List[EnglishKeyword]
+    ) -> List[EnglishKeyword]:
+        filtered = []
+        for keyword in english_keywords:
+            if keyword.verb and not keyword.text.startswith("to "):
+                continue
+            elif not keyword.verb and keyword.text.startswith("to "):
+                continue
+            filtered.append(keyword)
+        return filtered
     
     """
     For a given Spanish keyword, returns a list of SentencePair objects taken from the SpanishDict
@@ -133,13 +151,13 @@ class SpanishDictScraper:
             english_sentence_div = example.find("div", {"lang": "en"})
             spanish_sentence = SpanishSentence(
                 text=spanish_sentence_div.text,
-                keyword=self.find_keyword(
+                keyword=self._find_keyword(
                     spanish_sentence_div, spanish_keyword.verb, Language.SPANISH
                 )
             )
             english_sentence = EnglishSentence(
                 text=english_sentence_div.text,
-                keyword=self.find_keyword(
+                keyword=self._find_keyword(
                     english_sentence_div, spanish_keyword.verb, Language.ENGLISH
                 )
             )
@@ -161,7 +179,8 @@ class SpanishDictScraper:
         soup = await self._get_soup(url)
         translation_divs: List[Tag] = soup.find_all("div", id=re.compile(r"quickdef\d+-es"))
         div_texts = [div.text for div in translation_divs]
-        return [EnglishKeyword(text=text, verb=spanish_keyword.verb) for text in div_texts]
+        keywords = [EnglishKeyword(text=text, verb=spanish_keyword.verb) for text in div_texts]
+        return self._filter_english_keywords_by_verb_pattern(keywords)
 
     """
     For a given Spanish keyword, returns a translated list of English keywords taken from the
@@ -173,7 +192,8 @@ class SpanishDictScraper:
     ) -> List[EnglishKeyword]:
         sentence_pairs = await self.sentence_pairs_from_examples_pane(spanish_keyword)
         sentence_pair_coll = SentencePairCollection(sentence_pairs)
-        return sentence_pair_coll.most_common_english_keywords()
+        keywords = sentence_pair_coll.most_common_english_keywords()
+        return self._filter_english_keywords_by_verb_pattern(keywords)
 
 """
 A demonstration of the SpanishDictScraper class. The Spanish word "hola" is used by default, but
