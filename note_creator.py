@@ -7,7 +7,7 @@ from anki.models import NotetypeDict
 from anki.notes import Note
 
 from exceptions import RateLimitException
-from readable_fields import ReadableFields
+from internal_note import InternalNote
 from sentences import EnglishKeyword, SentencePairCollection, SpanishKeyword
 from spanish_dict import SpanishDictScraper
 
@@ -27,7 +27,7 @@ class NoteCreator:
         self.semaphore = asyncio.Semaphore(access_limit)
     
     def _create_new_note(
-        self, readable_fields: ReadableFields, sentence_pair_coll: SentencePairCollection,
+        self, internal_note: InternalNote, sentence_pair_coll: SentencePairCollection,
         english_keywords: List[EnglishKeyword]
     ) -> Note:
         spanish_sentences, english_sentences = [], []
@@ -36,7 +36,7 @@ class NoteCreator:
             sentence_pair = filtered_sentence_pairs[0]
             spanish_sentences.append(sentence_pair.spanish_sentence.text)
             english_sentences.append(sentence_pair.english_sentence.text)
-        readable_fields.definition = "; ".join(
+        internal_note.definition = "; ".join(
             [keyword.standardize() for keyword in english_keywords]
         )
         combine_sentences = lambda sentences: (
@@ -47,30 +47,28 @@ class NoteCreator:
                 ]
             )
         )
-        readable_fields.spanish = combine_sentences(spanish_sentences)
-        readable_fields.english = combine_sentences(english_sentences)
-        new_note = self.coll.new_note(self.model)
-        new_note.fields = readable_fields.retrieve()
-        return new_note
+        internal_note.spanish = combine_sentences(spanish_sentences)
+        internal_note.english = combine_sentences(english_sentences)
+        return internal_note.create()
 
     async def create_new_note_from_examples(
-        self, readable_fields: ReadableFields
+        self, internal_note: InternalNote
     ) -> Note:
         spanish_keyword = SpanishKeyword(
-            text=readable_fields.word, verb=readable_fields.part_of_speech == "v"
+            text=internal_note.word, verb=internal_note.part_of_speech == "v"
         )
         sentence_pairs = await self.spanish_dict_scraper.sentence_pairs_from_examples_pane(
             spanish_keyword
         )
         sentence_pair_coll = SentencePairCollection(sentence_pairs)
         english_keywords = sentence_pair_coll.most_common_english_keywords()
-        return self._create_new_note(readable_fields, sentence_pair_coll, english_keywords)
+        return self._create_new_note(internal_note, sentence_pair_coll, english_keywords)
     
     async def create_new_note_from_dictionary(
-        self, readable_fields: ReadableFields
+        self, internal_note: InternalNote
     ) -> Note:
         spanish_keyword = SpanishKeyword(
-            text=readable_fields.word, verb=readable_fields.part_of_speech == "v"
+            text=internal_note.word, verb=internal_note.part_of_speech == "v"
         )
         sentence_pairs = await self.spanish_dict_scraper.sentence_pairs_from_dictionary_pane(
             spanish_keyword
@@ -79,15 +77,15 @@ class NoteCreator:
         english_keywords = await self.spanish_dict_scraper.translate_from_dictionary(
             spanish_keyword
         )
-        return self._create_new_note(readable_fields, sentence_pair_coll, english_keywords)
+        return self._create_new_note(internal_note, sentence_pair_coll, english_keywords)
     
+    """"""
     async def create_new_note(
-        self, original_note: Note, note_creation_method: Callable
+        self, new_internal_note: InternalNote, note_creation_method: Callable
     ) -> Note:
-        readable_fields = ReadableFields(original_note.fields)
         async with self.semaphore:
             try:
-                return await note_creation_method(readable_fields)
+                return await note_creation_method(new_internal_note)
             except RateLimitException:
                 if not self.rate_limit_handling_event.is_set():  # Check if this coroutine is the first to handle the rate limit
                     self.rate_limit_handling_event.set()  # Indicate that rate limit handling is in progress
@@ -103,6 +101,6 @@ class NoteCreator:
                     logger.info("Rate limit deactivated")
                 else:
                     await self.rate_limit_event.wait()  # Wait for the first coroutine to finish handling the rate limit
-                return await note_creation_method(readable_fields)
+                return await note_creation_method(new_internal_note)
             except Exception:
-                logger.error(f"Error processing '{readable_fields.word}'")
+                logger.error(f"Error processing '{new_internal_note.word}'")

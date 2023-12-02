@@ -5,8 +5,8 @@ import logging
 from anki.storage import Collection as AnkiCollection
 from anki.notes import Note
 
+from internal_note import InternalNote
 from note_creator import NoteCreator
-from readable_fields import ReadableFields
 from spanish_dict import SpanishDictScraper
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -50,8 +50,9 @@ async def main():
         for cid in card_ids:
             original_card = coll.get_card(cid)
             original_note = original_card.note()
+            new_internal_note = InternalNote(coll, model, original_note)
             task = note_creator.create_new_note(
-                original_note, note_creator.create_new_note_from_dictionary
+                new_internal_note, note_creator.create_new_note_from_dictionary
             )
             tasks.append(task)
         
@@ -61,7 +62,9 @@ async def main():
             new_note: Note = await task
             coll.add_note(note=new_note, deck_id=new_deck_id)
             notes_created += 1
-            logger.info(f"Note #{notes_created} added: {ReadableFields(new_note.fields).word}")
+            logger.info(
+                f"Note #{notes_created} added: {InternalNote(coll, model, new_note).word}"
+            )
 
     else:
         logger.error(f"Deck '{original_deck_name}' not found")
