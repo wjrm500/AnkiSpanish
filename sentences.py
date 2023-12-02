@@ -54,9 +54,17 @@ class SentencePairCollection:
         self.english_keywords = [pair.english_sentence.keyword for pair in self.sentence_pairs]
         self.english_keyword_counter = Counter(self.english_keywords)
     
+    """
+    Returns the most common English keyword in the collection.
+    """
     def _most_common_english_keyword(self) -> EnglishKeyword:
         return self.english_keyword_counter.most_common(1)[0][0]
     
+    """
+    Returns a list of English keywords that appear at least `min_count` times in the collection.
+    If no keywords appear at least `min_count` times, returns a list containing the most common
+    English keyword.
+    """
     def most_common_english_keywords(self, min_count: int = 5) -> List[EnglishKeyword]:
         keywords = [
             keyword
@@ -65,6 +73,9 @@ class SentencePairCollection:
         ]
         return keywords or [self._most_common_english_keyword()]
     
+    """
+    Returns a list of sentence pairs that contain the given English keyword.
+    """
     def filter_by_english_keyword(self, english_keyword: EnglishKeyword) -> List[SentencePair]:
         return [
             pair for pair in self.sentence_pairs if pair.english_sentence.keyword == english_keyword

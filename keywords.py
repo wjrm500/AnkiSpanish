@@ -1,3 +1,4 @@
+import re
 from abc import ABC
 
 from textblob import Word
@@ -7,11 +8,11 @@ class Keyword(ABC):
     verb: bool
 
     """
-    Standardizes by converting to lowercase and removing any leading or trailing punctuation or
-    whitespace. If `verb` is `True`, the keyword is lemmatized as a verb.
+    Standardizes by removing punctuation, whitespace, and capitalization.
     """
     def standardize(self) -> str:
-        keyword = self.text.lower().strip(".,;:!?-")
+        keyword = re.sub(r"[.,;:!?-]", "", self.text)
+        keyword = keyword.strip().lower()
         return Word(keyword).lemmatize("v") if self.verb else keyword
 
     def __eq__(self, other: "Keyword") -> bool:
