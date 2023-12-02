@@ -1,7 +1,7 @@
 import argparse
 import asyncio
 import re
-from collections import Counter
+import urllib.parse
 from http import HTTPStatus
 from typing import List
 
@@ -54,6 +54,7 @@ class SpanishDictScraper:
     """
     @async_lru.alru_cache(maxsize=128)
     async def _get_soup(self, url: str) -> BeautifulSoup:
+        url = urllib.parse.quote(url, safe=":/?&=")
         if not self.session or self.session.closed:
             await self.start_session()
         async with self.session.get(url) as response:
@@ -180,7 +181,7 @@ async def main(spanish_word: str = "hola", verb: bool = False):
         print(f"Example Spanish sentence for '{spanish_keyword}' / '{keyword}': {selected_sentence_pair.spanish_sentence}")
         print(f"Example English sentence for '{spanish_keyword}' / '{keyword}': {selected_sentence_pair.english_sentence}")
     
-    print("\n")
+    print("\r")
 
     translations_from_examples = await scraper.translate_from_examples(spanish_keyword)
     print(f"Translations from examples: {translations_from_examples}")
@@ -195,8 +196,8 @@ async def main(spanish_word: str = "hola", verb: bool = False):
         selected_sentence_pair = filtered_sentence_pairs[0]
         print(f"Example Spanish sentence for '{spanish_keyword}' / '{english_keyword}': {selected_sentence_pair.spanish_sentence}")
         print(f"Example English sentence for '{spanish_keyword}' / '{english_keyword}': {selected_sentence_pair.english_sentence}")
-    
-    print("\n")
+
+    print("\r")
 
     print(f"Requests made: {scraper.requests_made}")
     await scraper.close_session()
