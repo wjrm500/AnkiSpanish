@@ -1,10 +1,14 @@
 from anki.storage import Collection as AnkiCollection
-from anki.notes import Note
-from anki.models import NotetypeDict
+from anki.notes import Note as AnkiNote
+from anki.models import NotetypeDict as AnkiModel
 
+"""
+A class that internally represents an existing Anki note, allowing us to more easily access and
+manipulate the note's fields to help create a new note.
+"""
 class InternalNote:
     coll: AnkiCollection
-    model: NotetypeDict
+    model: AnkiModel
 
     rank: str
     word: str
@@ -14,7 +18,7 @@ class InternalNote:
     english: str
     freq: str
 
-    def __init__(self, coll: AnkiCollection, model: NotetypeDict, original_note: Note) -> None:
+    def __init__(self, coll: AnkiCollection, model: AnkiModel, original_note: AnkiNote) -> None:
         self.coll = coll
         self.model = model
         fields = original_note.fields
@@ -26,7 +30,10 @@ class InternalNote:
         self.english = fields[5]
         self.freq = fields[6]
     
-    def create(self) -> Note:
+    """
+    Creates a new Anki note object using the fields of the InternalNote object.
+    """
+    def create(self) -> AnkiNote:
         new_note = self.coll.new_note(self.model)
         new_note.fields = [
             self.rank,
