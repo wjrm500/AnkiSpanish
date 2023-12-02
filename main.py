@@ -3,6 +3,7 @@ import os
 import logging
 
 from anki.storage import Collection as AnkiCollection
+from anki.errors import DBError as AnkiDBError
 from anki.notes import Note as AnkiNote
 
 from internal_note import InternalNote
@@ -27,7 +28,11 @@ async def main():
         return
 
     logger.info(f"Loading collection from {collection_path}")
-    coll = AnkiCollection(collection_path)
+    try:
+        coll = AnkiCollection(collection_path)
+    except AnkiDBError:
+        logger.error("Collection is already open in another Anki instance - is Anki running?")
+        return
     model = coll.models.by_name("A Frequency Dictionary of Spanish")
     spanish_dict_scraper = SpanishDictScraper()
     note_creator = NoteCreator(coll, model, spanish_dict_scraper)
