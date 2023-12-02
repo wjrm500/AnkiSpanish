@@ -2,7 +2,7 @@ import asyncio
 import os
 import logging
 
-from anki.storage import Collection
+from anki.storage import Collection as AnkiCollection
 from anki.models import NotetypeDict
 from anki.notes import Note
 
@@ -21,43 +21,90 @@ Creates a new Anki note based on the original note, but with the fields `definit
 `english` populated with more accurate and consistent translation data scraped from SpanishDict. If
 no translation data is found, the original note is returned unmodified.
 """
-async def create_new_note(col: Collection, model: NotetypeDict, original_note: Note) -> Note:
-    new_note = col.new_note(model)
+async def create_new_note_from_examples(
+    coll: AnkiCollection, model: NotetypeDict, original_note: Note
+) -> Note:
+    new_note = coll.new_note(model)
     readable_fields = ReadableFields(original_note.fields)
-    spanish_word = readable_fields.word
-    spanish_keyword = SpanishKeyword(text=spanish_word, verb=readable_fields.part_of_speech == "v")
-    sentence_pairs = await spanish_dict_scraper.sentence_pairs_from_examples_pane(spanish_keyword)
-    sentence_pair_coll = SentencePairCollection(sentence_pairs)
-    english_keywords = sentence_pair_coll.most_common_english_keywords()
-    if english_keywords:
+    spanish_keyword = SpanishKeyword(
+        text=readable_fields.word, verb=readable_fields.part_of_speech == "v"
+    )
+    try:
+        sentence_pairs = await spanish_dict_scraper.sentence_pairs_from_examples_pane(spanish_keyword)
+        if not sentence_pairs:
+            raise ValueError(f"No translation data found for '{readable_fields.word}'")
+        sentence_pair_coll = SentencePairCollection(sentence_pairs)
+        english_keywords = sentence_pair_coll.most_common_english_keywords()
         spanish_sentences, english_sentences = [], []
-        for english_keyword in english_keywords:
-            filtered_sentence_pairs = sentence_pair_coll.filter_by_english_keyword(english_keyword)
-            if not filtered_sentence_pairs:
-                continue
+        for keyword in english_keywords:
+            filtered_sentence_pairs = sentence_pair_coll.filter_by_english_keyword(keyword)
             sentence_pair = filtered_sentence_pairs[0]
             spanish_sentences.append(sentence_pair.spanish_sentence.text)
             english_sentences.append(sentence_pair.english_sentence.text)
-        readable_fields.definition = "; ".join(
-            [keyword.standardize() for keyword in english_keywords]
+    except RateLimitException | ValueError as e:
+        raise e
+    except Exception as e:
+        raise Exception(f"Error processing '{readable_fields.word}'")
+    readable_fields.definition = "; ".join(
+        [keyword.standardize() for keyword in english_keywords]
+    )
+    combine_sentences = lambda sentences: (
+        sentences[0] if len(sentences) == 1 else "<br>".join(
+            [
+                f"<span style='color: darkgray'>[{i}]</span> {s}"
+                for i, s in enumerate(sentences, 1)
+            ]
         )
-        combine_sentences = lambda sentences: (
-            sentences[0] if len(sentences) == 1 else "<br>".join(
-                [
-                    f"<span style='color: darkgray'>[{i}]</span> {s}"
-                    for i, s in enumerate(sentences, 1)
-                ]
-            )
+    )
+    readable_fields.spanish = combine_sentences(spanish_sentences)
+    readable_fields.english = combine_sentences(english_sentences)
+    new_note.fields = readable_fields.retrieve()
+    return new_note
+
+async def create_new_note_from_dictionary(
+    coll: AnkiCollection, model: NotetypeDict, original_note: Note
+) -> Note:
+    new_note = coll.new_note(model)
+    readable_fields = ReadableFields(original_note.fields)
+    spanish_keyword = SpanishKeyword(
+        text=readable_fields.word, verb=readable_fields.part_of_speech == "v"
+    )
+    try:
+        english_keywords = await spanish_dict_scraper.translate_from_dictionary(spanish_keyword)
+        sentence_pairs = await spanish_dict_scraper.sentence_pairs_from_dictionary_pane(spanish_keyword)
+        if not sentence_pairs:
+            raise ValueError(f"No translation data found for '{readable_fields.word}'")
+        sentence_pair_coll = SentencePairCollection(sentence_pairs)
+        spanish_sentences, english_sentences = [], []
+        for keyword in english_keywords:
+            filtered_sentence_pairs = sentence_pair_coll.filter_by_english_keyword(keyword)
+            sentence_pair = filtered_sentence_pairs[0]
+            spanish_sentences.append(sentence_pair.spanish_sentence.text)
+            english_sentences.append(sentence_pair.english_sentence.text)
+    except RateLimitException | ValueError as e:
+        raise e
+    except Exception as e:
+        raise Exception(f"Error processing '{readable_fields.word}'")
+    readable_fields.definition = "; ".join(
+        [keyword.standardize() for keyword in english_keywords]
+    )
+    combine_sentences = lambda sentences: (
+        sentences[0] if len(sentences) == 1 else "<br>".join(
+            [
+                f"<span style='color: darkgray'>[{i}]</span> {s}"
+                for i, s in enumerate(sentences, 1)
+            ]
         )
-        readable_fields.spanish = combine_sentences(spanish_sentences)
-        readable_fields.english = combine_sentences(english_sentences)
+    )
+    readable_fields.spanish = combine_sentences(spanish_sentences)
+    readable_fields.english = combine_sentences(english_sentences)
     new_note.fields = readable_fields.retrieve()
     return new_note
 
 rate_limit_event = asyncio.Event()
 rate_limit_event.set()  # Setting the event allows all coroutines to proceed
 rate_limit_handling_event = asyncio.Event()
-semaphore = asyncio.Semaphore(5)
+semaphore = asyncio.Semaphore(2)
 """
 This function is a wrapper around `create_new_note` that ensures only three notes can be created
 simultaneously, helping to avoid rate limiting by SpanishDict.
@@ -65,7 +112,7 @@ simultaneously, helping to avoid rate limiting by SpanishDict.
 async def limited_create_new_note(*args, **kwargs):
     async with semaphore:
         try:
-            return await create_new_note(*args, **kwargs)
+            return await create_new_note_from_dictionary(*args, **kwargs)
         except RateLimitException:
             # Check if this coroutine is the first to handle the rate limit
             if not rate_limit_handling_event.is_set():
@@ -83,7 +130,7 @@ async def limited_create_new_note(*args, **kwargs):
             else:
                 # Wait for the first coroutine to finish handling the rate limit
                 await rate_limit_event.wait()
-            return await create_new_note(*args, **kwargs)
+            return await create_new_note_from_dictionary(*args, **kwargs)
 
 """
 The main function. Creates a new Anki note for each card in the deck "A Frequency Dictionary of
@@ -100,44 +147,48 @@ async def main():
         return
 
     logger.info(f"Loading collection from {collection_path}")
-    col = Collection(collection_path)
-    model = col.models.by_name("A Frequency Dictionary of Spanish")
+    coll = AnkiCollection(collection_path)
+    model = coll.models.by_name("A Frequency Dictionary of Spanish")
 
     original_deck_name = "A Frequency Dictionary of Spanish"
     new_deck_name = "A Frequency Dictionary of Spanish (Edited)"
 
-    deck_names = [deck.name for deck in col.decks.all_names_and_ids()]
+    deck_names = [deck.name for deck in coll.decks.all_names_and_ids()]
     if original_deck_name in deck_names:
         if new_deck_name not in deck_names:
             logger.info(f"Creating new deck '{new_deck_name}'")
-            col.decks.id(new_deck_name)  # This creates a new deck
+            coll.decks.id(new_deck_name)  # This creates a new deck
 
-        original_deck_id = col.decks.id(original_deck_name)
-        new_deck_id = col.decks.id(new_deck_name)
+        original_deck_id = coll.decks.id(original_deck_name)
+        new_deck_id = coll.decks.id(new_deck_name)
         
-        card_ids = col.decks.cids(original_deck_id)
+        card_ids = coll.decks.cids(original_deck_id)
         logger.info(f"Processing {len(card_ids)} cards from '{original_deck_name}'")
         tasks = []
         for cid in card_ids:
-            original_card = col.get_card(cid)
+            original_card = coll.get_card(cid)
             original_note = original_card.note()
-            task = limited_create_new_note(col, model, original_note)
+            task = limited_create_new_note(coll, model, original_note)
             tasks.append(task)
         
         # Process tasks as they complete
         notes_created = 0
         for task in asyncio.as_completed(tasks):
-            new_note: Note = await task
-            col.add_note(note=new_note, deck_id=new_deck_id)
+            try:
+                new_note: Note = await task
+            except Exception as e:
+                logger.error(e)
+                continue
+            coll.add_note(note=new_note, deck_id=new_deck_id)
             notes_created += 1
             logger.info(f"Note #{notes_created} added: {ReadableFields(new_note.fields).word}")
 
     else:
         logger.error(f"Deck '{original_deck_name}' not found")
-        col.close()
+        coll.close()
         return
 
-    col.close()
+    coll.close()
     await spanish_dict_scraper.close_session()
     logger.info(f"Processing complete. Total requests made: {spanish_dict_scraper.requests_made}")
 
