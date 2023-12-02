@@ -3,8 +3,8 @@ import logging
 from typing import Callable, List
 
 from anki.storage import Collection as AnkiCollection
-from anki.models import NotetypeDict
-from anki.notes import Note
+from anki.models import NotetypeDict as AnkiModel
+from anki.notes import Note as AnkiNote
 
 from exceptions import RateLimitException
 from internal_note import InternalNote
@@ -13,9 +13,14 @@ from spanish_dict import SpanishDictScraper
 
 logger = logging.getLogger(__name__)
 
+"""
+A class that creates Anki notes from InternalNote objects by scraping SpanishDict for more accurate
+and consistent translation data. This class also handles rate limiting, allowing only a certain
+number of coroutines to access the SpanishDict website at a time.
+"""
 class NoteCreator:
     def __init__(
-        self, coll: AnkiCollection, model: NotetypeDict, spanish_dict_scraper: SpanishDictScraper,
+        self, coll: AnkiCollection, model: AnkiModel, spanish_dict_scraper: SpanishDictScraper,
         access_limit: int = 1
     ) -> None:
         self.coll = coll
@@ -26,10 +31,18 @@ class NoteCreator:
         self.rate_limit_handling_event = asyncio.Event()
         self.semaphore = asyncio.Semaphore(access_limit)
     
+    """
+    Creates a new Anki note object from a given InternalNote object, representing an existing note,
+    a SentencePairCollection object, representing the collection of sentence pairs scraped from
+    SpanishDict for the given keyword, and a list of EnglishKeyword objects, representing the
+    English keywords found on SpanishDict for the Spanish keyword, which are also used to filter the
+    SentencePairCollection to find relevant sentence pairs. The InternalNote object is updated to
+    include the translations and example sentences, and a new Anki note is created and returned.
+    """
     def _create_new_note(
         self, internal_note: InternalNote, sentence_pair_coll: SentencePairCollection,
         english_keywords: List[EnglishKeyword]
-    ) -> Note:
+    ) -> AnkiNote:
         spanish_sentences, english_sentences = [], []
         for keyword in english_keywords:
             filtered_sentence_pairs = sentence_pair_coll.filter_by_english_keyword(keyword)
@@ -51,9 +64,14 @@ class NoteCreator:
         internal_note.english = combine_sentences(english_sentences)
         return internal_note.create()
 
+    """
+    This note creation method uses the SpanishDict "Examples" pane to find up to twenty example
+    sentence pairs for the Spanish keyword, and takes the most common English keywords found among
+    the examples, and their corresponding sentence pairs, to create a new Anki note.
+    """
     async def create_new_note_from_examples(
         self, internal_note: InternalNote
-    ) -> Note:
+    ) -> AnkiNote:
         spanish_keyword = SpanishKeyword(
             text=internal_note.word, verb=internal_note.part_of_speech == "v"
         )
@@ -64,9 +82,14 @@ class NoteCreator:
         english_keywords = sentence_pair_coll.most_common_english_keywords()
         return self._create_new_note(internal_note, sentence_pair_coll, english_keywords)
     
+    """
+    This note creation method uses the SpanishDict "Dictionary" pane to find the primary English
+    keywords provided for the Spanish keyword, as well as the example sentence pairs also provided
+    in this pane, to create a new Anki note.
+    """
     async def create_new_note_from_dictionary(
         self, internal_note: InternalNote
-    ) -> Note:
+    ) -> AnkiNote:
         spanish_keyword = SpanishKeyword(
             text=internal_note.word, verb=internal_note.part_of_speech == "v"
         )
@@ -79,10 +102,15 @@ class NoteCreator:
         )
         return self._create_new_note(internal_note, sentence_pair_coll, english_keywords)
     
-    """"""
+    """
+    A wrapper and interface for the two note creation methods above. This method provides rate
+    limiting functionality, allowing only a certain number of coroutines to access the SpanishDict
+    website at a time. If a rate limit is detected, the coroutines will wait until the rate limit
+    has been lifted before proceeding. This method also handles general exceptions.
+    """
     async def create_new_note(
         self, new_internal_note: InternalNote, note_creation_method: Callable
-    ) -> Note:
+    ) -> AnkiNote:
         async with self.semaphore:
             try:
                 return await note_creation_method(new_internal_note)

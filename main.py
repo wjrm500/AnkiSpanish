@@ -3,7 +3,7 @@ import os
 import logging
 
 from anki.storage import Collection as AnkiCollection
-from anki.notes import Note
+from anki.notes import Note as AnkiNote
 
 from internal_note import InternalNote
 from note_creator import NoteCreator
@@ -59,7 +59,7 @@ async def main():
         # Process tasks as they complete
         notes_created = 0
         for task in asyncio.as_completed(tasks):
-            new_note: Note = await task
+            new_note: AnkiNote = await task
             coll.add_note(note=new_note, deck_id=new_deck_id)
             notes_created += 1
             logger.info(
