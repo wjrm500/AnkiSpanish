@@ -21,7 +21,7 @@ consistent translation data scraped from SpanishDict. The new notes are added to
 Frequency Dictionary of Spanish (Edited)". If the deck "A Frequency Dictionary of Spanish" does not
 exist, the program exits.
 """
-async def main(access_limit: int, words_to_process: str):
+async def main(access_limit: int, words_to_process: str, test: bool) -> None:
     collection_path = "C:\\Users\\wjrm5\\AppData\\Roaming\\Anki2\\User 1\\collection.anki2"
     
     if not os.path.exists(collection_path):
@@ -64,15 +64,16 @@ async def main(access_limit: int, words_to_process: str):
             )
             tasks.append(task)
         
-        notes_created = 0
+        notes_processed = 0
         for task in asyncio.as_completed(tasks):
             new_note: AnkiNote = await task
             if not new_note:
                 continue
-            coll.add_note(note=new_note, deck_id=new_deck_id)
-            notes_created += 1
+            if not test:
+                coll.add_note(note=new_note, deck_id=new_deck_id)
+            notes_processed += 1
             logger.debug(
-                f"Note #{notes_created} added: {InternalNote(coll, model, new_note).word}"
+                f"Note #{notes_processed} processed: {InternalNote(coll, model, new_note).word}"
             )
 
     else:
@@ -88,7 +89,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--access-limit", type=int, default=1)
     parser.add_argument("--words", nargs="+", default=[])
+    parser.add_argument("--test", action="store_true")
     args = parser.parse_args()
 
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(args.access_limit, args.words))
+    asyncio.run(main(args.access_limit, args.words, args.test))
