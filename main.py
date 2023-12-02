@@ -21,7 +21,7 @@ consistent translation data scraped from SpanishDict. The new notes are added to
 Frequency Dictionary of Spanish (Edited)". If the deck "A Frequency Dictionary of Spanish" does not
 exist, the program exits.
 """
-async def main(access_limit: int, test_word: str):
+async def main(access_limit: int, words_to_process: str):
     collection_path = "C:\\Users\\wjrm5\\AppData\\Roaming\\Anki2\\User 1\\collection.anki2"
     
     if not os.path.exists(collection_path):
@@ -57,7 +57,7 @@ async def main(access_limit: int, test_word: str):
             original_card = coll.get_card(cid)
             original_note = original_card.note()
             new_internal_note = InternalNote(coll, model, original_note)
-            if test_word and new_internal_note.word != test_word:
+            if words_to_process and new_internal_note.word not in words_to_process:
                 continue
             task = note_creator.create_new_note(
                 new_internal_note, note_creator.create_new_note_from_dictionary
@@ -87,8 +87,8 @@ async def main(access_limit: int, test_word: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--access-limit", type=int, default=1)
-    parser.add_argument("--test-word", type=str, default=None)
+    parser.add_argument("--words", nargs="+", default=[])
     args = parser.parse_args()
 
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(args.access_limit, args.test_word))
+    asyncio.run(main(args.access_limit, args.words))
