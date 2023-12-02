@@ -64,7 +64,6 @@ async def main(access_limit: int, test_word: str):
             )
             tasks.append(task)
         
-        # Process tasks as they complete
         notes_created = 0
         for task in asyncio.as_completed(tasks):
             new_note: AnkiNote = await task
@@ -72,7 +71,7 @@ async def main(access_limit: int, test_word: str):
                 continue
             coll.add_note(note=new_note, deck_id=new_deck_id)
             notes_created += 1
-            logger.info(
+            logger.debug(
                 f"Note #{notes_created} added: {InternalNote(coll, model, new_note).word}"
             )
 
