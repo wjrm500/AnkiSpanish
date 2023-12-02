@@ -15,6 +15,12 @@ from exceptions import RateLimitException
 from keywords import EnglishKeyword, Keyword, SpanishKeyword
 from sentences import SentencePair, SentencePairCollection, SpanishSentence, EnglishSentence
 
+"""
+A class that handles scraping the SpanishDict website for translation data, offering methods to find
+English keywords (translations) and example sentences for a given Spanish keyword. Translations and
+example sentences can be found in either of two panes on the SpanishDict website: the main
+"Dictionary" pane, and the "Examples" pane.
+"""
 class SpanishDictScraper:
     requests_made = 0
 
@@ -50,7 +56,9 @@ class SpanishDictScraper:
             return response.status == HTTPStatus.TOO_MANY_REQUESTS
 
     """
-    Returns a BeautifulSoup object from a given URL.
+    Returns a BeautifulSoup object from a given URL. The URL is first encoded to ensure that it is
+    valid, and the response is checked for rate-limiting. If the response is rate-limited, a
+    RateLimitException is raised.
     """
     @async_lru.alru_cache(maxsize=128)
     async def _get_soup(self, url: str) -> BeautifulSoup:
@@ -65,7 +73,8 @@ class SpanishDictScraper:
     
     """
     For a given sentence div, returns a Keyword object containing the text of the keyword and
-    whether the keyword is a verb.
+    whether the keyword is a verb. The language parameter is used to determine whether the keyword
+    is Spanish or English.
     """
     def find_keyword(self, sentence_div: Tag, verb: bool, language: Language) -> Keyword:
         if language == Language.SPANISH:
@@ -75,6 +84,10 @@ class SpanishDictScraper:
         else:
             raise ValueError(f"Invalid language: {language}")
     
+    """
+    For a given Spanish keyword, returns a list of SentencePair objects taken from the SpanishDict
+    website. The "Dictionary" pane is used to find sentence pairs.
+    """
     async def sentence_pairs_from_dictionary_pane(
         self, spanish_keyword: SpanishKeyword
     ) -> List[SentencePair]:
@@ -105,9 +118,8 @@ class SpanishDictScraper:
         return sentence_pairs
 
     """
-    For a given Spanish word, retrieves a list of HTML table row elements from SpanishDict, each
-    containing an example Spanish sentence containing the word and the English translation for that
-    sentence.
+    For a given Spanish keyword, returns a list of SentencePair objects taken from the SpanishDict
+    website. The "Examples" pane is used to find sentence pairs.
     """
     async def sentence_pairs_from_examples_pane(
         self, spanish_keyword: SpanishKeyword
@@ -137,8 +149,10 @@ class SpanishDictScraper:
         return sentence_pairs
     
     """
-    For a given Spanish word, returns a list of English translations taken from the SpanishDict
-    dictionary.
+    For a given Spanish keyword, returns a translated list of English keywords taken from the
+    SpanishDict website. The "Dictionary" pane is used to find translations, specifically the
+    large, bold, hyperlinked text that appears just beneath the Spanish keyword, underneath the
+    search bar.
     """
     async def translate_from_dictionary(
         self, spanish_keyword: SpanishKeyword
@@ -150,10 +164,9 @@ class SpanishDictScraper:
         return [EnglishKeyword(text=text, verb=spanish_keyword.verb) for text in div_texts]
 
     """
-    For a given Spanish word, returns a list of English translations taken from example sentences.
-    A maximum of twenty example sentences are considered, and only translations that appear in at
-    least five sentences are included in the returned list. If no translations appear in at least
-    five sentences, the most common translation is returned.
+    For a given Spanish keyword, returns a translated list of English keywords taken from the
+    SpanishDict website. The "Examples" pane is used to find translations, by finding the English
+    keywords that appear most frequently among the example sentences.
     """
     async def translate_from_examples(
         self, spanish_keyword: SpanishKeyword
@@ -161,7 +174,12 @@ class SpanishDictScraper:
         sentence_pairs = await self.sentence_pairs_from_examples_pane(spanish_keyword)
         sentence_pair_coll = SentencePairCollection(sentence_pairs)
         return sentence_pair_coll.most_common_english_keywords()
-    
+
+"""
+A demonstration of the SpanishDictScraper class. The Spanish word "hola" is used by default, but
+another word can be specified using the spanish_word argument. If the word is a verb, the verb
+argument should be set to True.
+"""
 async def main(spanish_word: str = "hola", verb: bool = False):
     spanish_keyword = SpanishKeyword(text=spanish_word, verb=verb)
     scraper = SpanishDictScraper()
