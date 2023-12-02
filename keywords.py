@@ -21,7 +21,7 @@ class Keyword(ABC):
         return hash(self.standardize())
     
     def __repr__(self) -> str:
-        return f"Keyword(text={self.text}, verb={self.verb})"
+        return f"{self.__class__.__name__}(text={self.text}, verb={self.verb})"
     
     def __str__(self) -> str:
         return self.standardize()

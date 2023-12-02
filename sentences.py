@@ -8,6 +8,9 @@ class Sentence(ABC):
     text: str
     keyword: Keyword
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(text={self.text}, keyword={self.keyword})"
+
     def __str__(self) -> str:
         return self.text
 
@@ -28,6 +31,12 @@ class EnglishSentence(Sentence):
 class SentencePair:
     spanish_sentence: SpanishSentence
     english_sentence: EnglishSentence
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(spanish_sentence={self.spanish_sentence}, english_sentence={self.english_sentence})"
+    
+    def __str__(self) -> str:
+        return f"{self.spanish_sentence}\n{self.english_sentence}"
 
     def __init__(
         self, spanish_sentence: SpanishSentence, english_sentence: EnglishSentence
