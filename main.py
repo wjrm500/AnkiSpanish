@@ -60,8 +60,8 @@ async def main(access_limit: int, words_to_translate: List[str], test: bool) -> 
         templates=[
             {
                 "name": "Card 1",
-                "qfmt": "{{word}}<br>{{part_of_speech}}<br>{{definition}}<br>{{source_sentences}}",
-                "afmt": "{{FrontSide}}<hr id='answer'>{{target_sentences}}",
+                "qfmt": "<div style='text-align:center;'><span style='color:orange; font-size:20px; font-weight:bold'>{{word}}</span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",
+                "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",
             }
         ],
     )
@@ -70,7 +70,7 @@ async def main(access_limit: int, words_to_translate: List[str], test: bool) -> 
     logger.info(f"Processing {len(words_to_translate)} words")
     tasks = []
     for word_to_translate in words_to_translate:
-        task = note_creator.create_notes(word_to_translate)
+        task = note_creator.rate_limited_create_notes(word_to_translate)
         tasks.append(task)
     
     words_processed, notes_added = 0, 0

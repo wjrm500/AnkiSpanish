@@ -35,7 +35,7 @@ class NoteCreator:
         field_dict = {
             "word": translation.word_to_translate,
             "part_of_speech": translation.part_of_speech,
-            "definition": ",".join([d.text for d in translation.definitions]),
+            "definition": ", ".join([d.text for d in translation.definitions]),
             "source_sentences": combine_sentences(source_sentences),
             "target_sentences": combine_sentences(target_sentences),
         }
