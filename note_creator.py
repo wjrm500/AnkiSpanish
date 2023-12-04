@@ -12,13 +12,13 @@ from translation import Translation
 logger = logging.getLogger(__name__)
 
 class NoteCreator:
-    def __init__(self, model: AnkiModel, scraper: Scraper, access_limit: int = 1) -> None:
+    def __init__(self, model: AnkiModel, scraper: Scraper, concurrency_limit: int = 1) -> None:
         self.model = model
         self.scraper = scraper
         self.rate_limit_event = asyncio.Event()
         self.rate_limit_event.set()  # Setting the event allows all coroutines to proceed
         self.rate_limit_handling_event = asyncio.Event()
-        self.semaphore = asyncio.Semaphore(access_limit)
+        self.semaphore = asyncio.Semaphore(concurrency_limit)
     
     def _create_note_from_translation(self, translation: Translation) -> AnkiNote:
         source_sentences, target_sentences = [], []
