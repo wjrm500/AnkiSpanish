@@ -10,6 +10,12 @@ from translation import Translation
 
 logger = logging.getLogger(__name__)
 
+"""
+A class responsible for creating AnkiNote objects from Translation objects. This class coordinates
+the process of getting from a word to a list of notes, by first using a Scraper subclass to generate
+a list of Translation objects for the word, and then calling an internal method to convert each
+Translation object into an AnkiNote object.
+"""
 class NoteCreator:
     def __init__(self, model: AnkiModel, scraper: Scraper, concurrency_limit: int = 1) -> None:
         self.model = model
@@ -19,6 +25,11 @@ class NoteCreator:
         self.rate_limit_handling_event = asyncio.Event()
         self.semaphore = asyncio.Semaphore(concurrency_limit)
     
+    """
+    Creates an AnkiNote object from a given Translation object. This method is responsible for
+    taking the data retrieved from the website and converting it into an AnkiNote object. There is
+    a one-to-one relationship between translations and notes.
+    """
     def _create_note_from_translation(self, translation: Translation) -> AnkiNote:
         source_sentences, target_sentences = [], []
         for definition in translation.definitions:
@@ -44,9 +55,15 @@ class NoteCreator:
             fields=list(field_dict.values()),
         )
     
+    """
+    Creates a list of AnkiNote objects from a given word. This method coordinates the process of
+    getting from a word to a list of notes, by first using a Scraper subclass to generate a list of
+    Translation objects for the word, and then calling an internal method to convert each
+    Translation object into an AnkiNote object.
+    """
     async def create_notes(self, word_to_translate: str) -> List[AnkiNote]:
         translations = await self.scraper.translate(word_to_translate)
-        # Filter translations
+        # Filter translations?
         return [self._create_note_from_translation(t) for t in translations]
     
     """
