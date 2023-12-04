@@ -30,7 +30,7 @@ def get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck() 
         coll = AnkiCollection(collection_path)
     except AnkiDBError:
         logger.error("Collection is already open in another Anki instance - is Anki running?")
-        return
+        return []
 
     card_ids = coll.decks.cids(coll.decks.id(original_deck_name))
     logger.info(f"Processing {len(card_ids)} cards from '{original_deck_name}'")
@@ -46,6 +46,9 @@ async def main(
 ) -> None:
     if not words_to_translate:
         words_to_translate = get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck()
+    if not words_to_translate:
+        logger.error("No words to translate")
+        return
     scraper = SpanishDictScraper()
     deck = AnkiDeck(
         2059400110,
