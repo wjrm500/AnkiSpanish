@@ -4,6 +4,7 @@ from typing import List
 
 from genanki import Model as AnkiModel, Note as AnkiNote
 
+from consts import PrintColour as PC
 from exceptions import RateLimitException
 from scraper import Scraper
 from translation import Translation
@@ -63,7 +64,7 @@ class NoteCreator:
                 if not self.rate_limit_handling_event.is_set():  # Check if this coroutine is the first to handle the rate limit
                     self.rate_limit_handling_event.set()  # Indicate that rate limit handling is in progress
                     reset_time = 30
-                    logger.error(f"Rate limit activated. Waiting {reset_time} seconds...")
+                    logger.error(f"{PC.RED}Rate limit activated. Waiting {reset_time} seconds...{PC.END}")
                     self.rate_limit_event.clear()
                     await asyncio.sleep(reset_time)
                     while await self.scraper.rate_limited():
@@ -76,4 +77,4 @@ class NoteCreator:
                     await self.rate_limit_event.wait()  # Wait for the first coroutine to finish handling the rate limit
                 return await self.create_notes(word_to_translate)
             except Exception as e:
-                logger.error(f"Error processing '{word_to_translate}': {e}")
+                logger.error(f"{PC.RED}Error processing '{word_to_translate}': {e}{PC.END}")
