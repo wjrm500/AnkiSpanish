@@ -1,9 +1,5 @@
 import enum
 
-class Language(enum.Enum):
-    SPANISH = "es"
-    ENGLISH = "en"
-
 class PrintColour(enum.Enum):
     RED = "\033[91m"
     GREEN = "\033[92m"

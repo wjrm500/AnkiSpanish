@@ -1,9 +1,10 @@
+import abc
 import argparse
 import asyncio
 import re
 import urllib.parse
 from http import HTTPStatus
-from typing import List, Tuple
+from typing import List
 
 import aiohttp
 import async_lru
@@ -13,46 +14,12 @@ from bs4.element import Tag
 from exceptions import RateLimitException
 from translation import Definition, SentencePair, Translation
 
-"""
-A class that handles scraping the SpanishDict website for translation data, offering methods to find
-English keywords (translations) and example sentences for a given Spanish keyword. Translations and
-example sentences can be found in either of two panes on the SpanishDict website: the main
-"Dictionary" pane, and the "Examples" pane.
-"""
-class SpanishDictScraper:
+class Scraper(abc.ABC):
     requests_made = 0
 
     def __init__(self):
-        self.base_url = "https://www.spanishdict.com"
         self.session = None
-
-    """
-    Starts an asynchronous HTTP session.
-    """
-    async def start_session(self):
-        if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession()
-
-    """
-    Closes the asynchronous HTTP session.
-    """
-    async def close_session(self):
-        if self.session:
-            await self.session.close()
-
-    """
-    Checks if the scraper is rate-limited by the SpanishDict server.
-
-    This method makes a GET request to the base URL of SpanishDict to determine if the response
-    status is TOO_MANY_REQUESTS (429), indicating rate-limiting.
-    """
-    async def rate_limited(self) -> bool:
-        if not self.session or self.session.closed:
-            await self.start_session()
-        async with self.session.get(self.base_url) as response:
-            self.requests_made += 1
-            return response.status == HTTPStatus.TOO_MANY_REQUESTS
-
+    
     """
     Returns a BeautifulSoup object from a given URL. The URL is first encoded to ensure that it is
     valid, and the response is checked for rate-limiting. If the response is rate-limited, a
@@ -69,6 +36,47 @@ class SpanishDictScraper:
                 raise RateLimitException()
             return BeautifulSoup(await response.text(), "html.parser")
     
+    """
+    Standardizes a given text by removing punctuation, whitespace, and capitalization.
+    """
+    def _standardize(self, text: str) -> str:
+        text = re.sub(r"[.,;:!?-]", "", text)
+        return text.strip().lower()
+
+    """
+    Starts an asynchronous HTTP session.
+    """
+    async def start_session(self):
+        if self.session is None or self.session.closed:
+            self.session = aiohttp.ClientSession()
+
+    """
+    Closes the asynchronous HTTP session.
+    """
+    async def close_session(self):
+        if self.session:
+            await self.session.close()
+
+    """
+    Checks if the scraper is rate-limited by the server.
+
+    This method makes a GET request to the base URL to determine if the response status is
+    TOO_MANY_REQUESTS (429), indicating rate-limiting.
+    """
+    async def rate_limited(self) -> bool:
+        if not self.session or self.session.closed:
+            await self.start_session()
+        async with self.session.get(self.base_url) as response:
+            self.requests_made += 1
+            return response.status == HTTPStatus.TOO_MANY_REQUESTS
+    
+    @abc.abstractmethod
+    async def translate(self, word_to_translate: str) -> List[Translation]:
+        pass
+
+class SpanishDictScraper(Scraper):
+    base_url = "https://www.spanishdict.com"
+
     def _get_translation_from_div(self, spanish_word: str, part_of_speech_div: Tag) -> Translation:
         part_of_speech = part_of_speech_div.find("a").text
         definition_divs: List[Tag] = part_of_speech_div.find_all(class_="tmBfjszm")
@@ -97,19 +105,8 @@ class SpanishDictScraper:
                 seen.add(definition.text)
                 unique_definitions.append(definition)
         return Translation(spanish_word, part_of_speech, unique_definitions)
-    
-    """
-    Standardizes a given text by removing punctuation, whitespace, and capitalization.
-    """
-    def _standardize(self, text: str) -> str:
-        text = re.sub(r"[.,;:!?-]", "", text)
-        return text.strip().lower()
 
-    """
-    For a given Spanish keyword, returns a list of SentencePair objects taken from the SpanishDict
-    website. The "Dictionary" pane is used to find sentence pairs.
-    """
-    async def translations_from_dictionary_pane(self, spanish_word: str) -> List[Translation]:
+    async def translate(self, spanish_word: str) -> List[Translation]:
         url = f"{self.base_url}/translate/{self._standardize(spanish_word)}?langFrom=es"
         soup = await self._get_soup(url)
         dictionary_neodict_es_div = soup.find("div", id="dictionary-neodict-es")
@@ -129,7 +126,7 @@ async def main(spanish_word: str = "hola"):
 
     print(f"Spanish word: {spanish_word}\n")
 
-    translations = await scraper.translations_from_dictionary_pane(spanish_word)
+    translations = await scraper.translate(spanish_word)
     for translation in translations:
         print(translation.stringify(verbose=True))
         print()

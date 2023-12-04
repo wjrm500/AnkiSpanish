@@ -2,27 +2,22 @@ import argparse
 import asyncio
 import os
 import logging
+from typing import List
 
-from anki.storage import Collection as AnkiCollection
-from anki.errors import DBError as AnkiDBError
-from anki.notes import Note as AnkiNote
+from genanki import Deck as AnkiDeck, Model as AnkiModel, Note as AnkiNote, Package as AnkiPackage
 
-from internal_note import InternalNote
 from note_creator import NoteCreator
-from spanish_dict import SpanishDictScraper
+from scraper import SpanishDictScraper
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-"""
-The main function. Creates a new Anki note for each card in the deck "A Frequency Dictionary of
-Spanish", populating the fields `definition`, `spanish` and `english` with more accurate and
-consistent translation data scraped from SpanishDict. The new notes are added to the deck "A
-Frequency Dictionary of Spanish (Edited)". If the deck "A Frequency Dictionary of Spanish" does not
-exist, the program exits.
-"""
-async def main(access_limit: int, words_to_process: str, test: bool) -> None:
+def get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck() -> List[str]:
+    from anki.collection import Collection as AnkiCollection
+    from anki.errors import DBError as AnkiDBError
+
     collection_path = "C:\\Users\\wjrm5\\AppData\\Roaming\\Anki2\\User 1\\collection.anki2"
+    original_deck_name = "A Frequency Dictionary of Spanish"
     
     if not os.path.exists(collection_path):
         logger.error(f"Collection not found at {collection_path}")
@@ -34,60 +29,66 @@ async def main(access_limit: int, words_to_process: str, test: bool) -> None:
     except AnkiDBError:
         logger.error("Collection is already open in another Anki instance - is Anki running?")
         return
-    model = coll.models.by_name("A Frequency Dictionary of Spanish")
-    spanish_dict_scraper = SpanishDictScraper()
-    note_creator = NoteCreator(coll, model, spanish_dict_scraper, access_limit)
 
-    original_deck_name = "A Frequency Dictionary of Spanish"
-    new_deck_name = "A Frequency Dictionary of Spanish (Edited)"
+    card_ids = coll.decks.cids(coll.decks.id(original_deck_name))
+    logger.info(f"Processing {len(card_ids)} cards from '{original_deck_name}'")
+    words_to_translate = []
+    for cid in card_ids:
+        original_card = coll.get_card(cid)
+        word_to_translate = original_card.note().fields[1]
+        words_to_translate.append(word_to_translate)
+    return list(set(words_to_translate))
 
-    deck_names = [deck.name for deck in coll.decks.all_names_and_ids()]
-    if original_deck_name in deck_names:
-        if new_deck_name not in deck_names:
-            logger.info(f"Creating new deck '{new_deck_name}'")
-            coll.decks.id(new_deck_name)  # This creates a new deck
+async def main(access_limit: int, words_to_translate: List[str], test: bool) -> None:
+    if not words_to_translate:
+        words_to_translate = get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck()
+    scraper = SpanishDictScraper()
+    deck = AnkiDeck(
+        2059400110,
+        "Programmatically generated language learning flashcards"
+    )
+    model = AnkiModel(
+        1098765432,
+        "Language learning flashcard model",
+        fields=[
+            {"name": "word"},
+            {"name": "part_of_speech"},
+            {"name": "definition"},
+            {"name": "source_sentences"},
+            {"name": "target_sentences"},
+        ],
+        templates=[
+            {
+                "name": "Card 1",
+                "qfmt": "{{word}}<br>{{part_of_speech}}<br>{{definition}}<br>{{source_sentences}}",
+                "afmt": "{{FrontSide}}<hr id='answer'>{{target_sentences}}",
+            }
+        ],
+    )
+    note_creator = NoteCreator(model, scraper, access_limit)
 
-        original_deck_id = coll.decks.id(original_deck_name)
-        new_deck_id = coll.decks.id(new_deck_name)
-        
-        card_ids = coll.decks.cids(original_deck_id)
-        logger.info(f"Processing {len(card_ids)} cards from '{original_deck_name}'")
-        tasks = []
-        words_seen = set()
-        for cid in card_ids:
-            original_card = coll.get_card(cid)
-            word_to_translate = original_card.note().fields["word"]
-            if word_to_translate in words_seen:
-                logger.debug(f"Skipping duplicate word: {word_to_translate}")
-                continue
-            if words_to_process and new_internal_note.word not in words_to_process:
-                continue
-            new_internal_note = InternalNote(coll, model, word_to_translate)
-            task = note_creator.create_notes(
-                new_internal_note, note_creator.create_new_note_from_dictionary
-            )
-            tasks.append(task)
-        
-        notes_processed = 0
-        for task in asyncio.as_completed(tasks):
-            new_note: AnkiNote = await task
-            if not new_note:
-                continue
-            if not test:
-                coll.add_note(note=new_note, deck_id=new_deck_id)
-            notes_processed += 1
-            logger.debug(
-                f"Note #{notes_processed} processed: {InternalNote(coll, model, new_note).word}"
-            )
+    logger.info(f"Processing {len(words_to_translate)} words")
+    tasks = []
+    for word_to_translate in words_to_translate:
+        task = note_creator.create_notes(word_to_translate)
+        tasks.append(task)
+    
+    words_processed, notes_added = 0, 0
+    for task in asyncio.as_completed(tasks):
+        new_notes: List[AnkiNote] = await task
+        words_processed += 1
+        if not new_notes:
+            continue
+        if not test:
+            for new_note in new_notes:
+                deck.add_note(note=new_note)
+        notes_added += len(new_notes)
+        logger.debug(f"Added {len(new_notes)} notes for word {new_notes[0].fields[0]} ({words_processed}/{len(tasks)})")
+    
+    AnkiPackage(deck).write_to_file("output.apkg")
 
-    else:
-        logger.error(f"Deck '{original_deck_name}' not found")
-        coll.close()
-        return
-
-    coll.close()
-    await spanish_dict_scraper.close_session()
-    logger.info(f"Processing complete. Total requests made: {spanish_dict_scraper.requests_made}")
+    await scraper.close_session()
+    logger.info(f"Processing complete. Total requests made: {scraper.requests_made}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
