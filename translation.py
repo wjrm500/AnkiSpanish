@@ -50,7 +50,8 @@ class Translation:
         return f"{self.__class__.__name__}(word_to_translate={self.word_to_translate}, part_of_speech={self.part_of_speech})"
     
     def __init__(
-        self, word_to_translate: str, part_of_speech: str, definitions: List[Definition]
+        self, word_to_translate: str, part_of_speech: str, definitions: List[Definition],
+        max_definitions: int = 3
     ) -> None:
         if not word_to_translate:
             raise ValueError("Word to translate cannot be empty.")
@@ -60,7 +61,7 @@ class Translation:
             raise ValueError("Definitions cannot be empty.")
         self.word_to_translate = word_to_translate
         self.part_of_speech = part_of_speech
-        self.definitions = definitions
+        self.definitions = definitions[:max_definitions]
     
     def stringify(self, verbose: bool = False) -> str:
         s = f"{PC.GREEN}{self.word_to_translate} ({self.part_of_speech}) - {', '.join([definition.text for definition in self.definitions])}{PC.END}"
