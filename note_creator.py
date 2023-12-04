@@ -26,6 +26,21 @@ class NoteCreator:
         self.semaphore = asyncio.Semaphore(concurrency_limit)
     
     """
+    Combines a list of sentences into a single string, with each sentence on a new line and prefixed
+    with its index.
+    """
+    def _combine_sentences(self, sentences: List[str]) -> str:
+        if len(sentences) == 1:
+            return sentences[0]
+        else:
+            return "<br>".join(
+                [
+                    f"<span style='color: darkgray'>[{i}]</span> {s}"
+                    for i, s in enumerate(sentences, 1)
+                ]
+            )
+    
+    """
     Creates an AnkiNote object from a given Translation object. This method is responsible for
     taking the data retrieved from the website and converting it into an AnkiNote object. There is
     a one-to-one relationship between translations and notes.
@@ -35,22 +50,13 @@ class NoteCreator:
         for definition in translation.definitions:
             source_sentences.append(definition.sentence_pairs[0].source_sentence)
             target_sentences.append(definition.sentence_pairs[0].target_sentence)
-        def combine_sentences(sentences: List[str]) -> str:
-            if len(sentences) == 1:
-                return sentences[0]
-            else:
-                return "<br>".join(
-                    [
-                        f"<span style='color: darkgray'>[{i}]</span> {s}"
-                        for i, s in enumerate(sentences, 1)
-                    ]
-                )
+        
         field_dict = {
             "word": translation.word_to_translate,
             "part_of_speech": translation.part_of_speech,
             "definition": ", ".join([d.text for d in translation.definitions]),
-            "source_sentences": combine_sentences(source_sentences),
-            "target_sentences": combine_sentences(target_sentences),
+            "source_sentences": self._combine_sentences(source_sentences),
+            "target_sentences": self._combine_sentences(target_sentences),
         }
         return AnkiNote(
             model=self.model,
