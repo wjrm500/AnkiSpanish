@@ -17,7 +17,7 @@ class SentencePair:
         self.target_sentence = target_sentence
 
     def stringify(self, verbose: bool = False) -> str:
-        return f"{PC.BLUE}{self.source_sentence}{PC.END} - {PC.PURPLE}{self.target_sentence}{PC.END}" if verbose else self.target_sentence
+        return f"{PC.BLUE}{self.source_sentence}{PC.RESET} - {PC.PURPLE}{self.target_sentence}{PC.RESET}" if verbose else self.target_sentence
     
 class Definition:
     text: str
@@ -35,7 +35,7 @@ class Definition:
         self.sentence_pairs = sentence_pairs
 
     def stringify(self, verbose: bool = False) -> str:
-        s = f"{PC.YELLOW}{self.text}{PC.END}"
+        s = f"{PC.YELLOW}{self.text}{PC.RESET}"
         if verbose:
             for sentence_pair in self.sentence_pairs:
                 s += f"\n   {sentence_pair.stringify(verbose)}"
@@ -64,7 +64,7 @@ class Translation:
         self.definitions = definitions[:max_definitions]
     
     def stringify(self, verbose: bool = False) -> str:
-        s = f"{PC.GREEN}{self.word_to_translate} ({self.part_of_speech}) - {', '.join([definition.text for definition in self.definitions])}{PC.END}"
+        s = f"{PC.GREEN}{self.word_to_translate} ({self.part_of_speech}) - {', '.join([definition.text for definition in self.definitions])}{PC.RESET}"
         if verbose:
             for definition in self.definitions:
                 s += f"\n{definition.stringify(verbose)}"

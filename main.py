@@ -46,7 +46,6 @@ async def main(
     if not words_to_translate:
         logger.warning("No words to translate, exiting")
         return
-    scraper = SpanishDictScraper()
     deck = AnkiDeck(
         2059400110,
         "Programmatically generated language learning flashcards"
@@ -69,6 +68,7 @@ async def main(
             }
         ],
     )
+    scraper = SpanishDictScraper()
     note_creator = NoteCreator(model, scraper, concurrency_limit)
 
     logger.info(f"Processing {len(words_to_translate)} words")
@@ -88,7 +88,7 @@ async def main(
                 continue
             all_new_notes.extend(new_notes)
             notes_to_create += len(new_notes)
-            logger.debug(f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.END} - Prepared {PC.GREEN}{len(new_notes)}{PC.END} notes for word {PC.CYAN}{new_notes[0].fields[0]:20}{PC.END} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.END}")
+            logger.debug(f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.RESET} - Prepared {PC.GREEN}{len(new_notes)}{PC.RESET} notes for word {PC.CYAN}{new_notes[0].fields[0]:20}{PC.RESET} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.RESET}")
             if note_limit and notes_to_create >= note_limit:
                 logger.info(f"Note limit of {note_limit} reached - stopping processing")
                 break
@@ -104,7 +104,7 @@ async def main(
     random.shuffle(all_new_notes)
     for new_note in all_new_notes:
         deck.add_note(note=new_note)
-        logger.debug(f"Created note for translation {PC.CYAN}{new_note.fields[0]} ({new_note.fields[1]}){PC.END}")
+        logger.debug(f"Created note for translation {PC.CYAN}{new_note.fields[0]} ({new_note.fields[1]}){PC.RESET}")
     AnkiPackage(deck).write_to_file(output_to)
     logger.info(f"Processing complete. Total requests made: {scraper.requests_made}")
 

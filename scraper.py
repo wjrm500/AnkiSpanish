@@ -72,7 +72,7 @@ class Scraper(abc.ABC):
     
     @abc.abstractmethod
     async def translate(self, word_to_translate: str) -> List[Translation]:
-        pass
+        raise NotImplementedError()
 
 class SpanishDictScraper(Scraper):
     base_url = "https://www.spanishdict.com"

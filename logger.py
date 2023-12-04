@@ -8,9 +8,9 @@ class CustomFormatter(logging.Formatter):
     FORMATS = {
         logging.DEBUG: FORMAT,
         logging.INFO: FORMAT,
-        logging.WARNING: PC.YELLOW.value + FORMAT + PC.END.value,
-        logging.ERROR: PC.RED.value + FORMAT + PC.END.value,
-        logging.CRITICAL: PC.RED.value + FORMAT + PC.END.value
+        logging.WARNING: PC.YELLOW.value + FORMAT + PC.RESET.value,
+        logging.ERROR: PC.RED.value + FORMAT + PC.RESET.value,
+        logging.CRITICAL: PC.RED.value + FORMAT + PC.RESET.value
     }
 
     def format(self, record):

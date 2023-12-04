@@ -4,7 +4,6 @@ from typing import List
 
 from genanki import Model as AnkiModel, Note as AnkiNote
 
-from consts import PrintColour as PC
 from exceptions import RateLimitException
 from scraper import Scraper
 from translation import Translation
