@@ -53,13 +53,17 @@ async def main(access_limit: int, words_to_process: str, test: bool) -> None:
         card_ids = coll.decks.cids(original_deck_id)
         logger.info(f"Processing {len(card_ids)} cards from '{original_deck_name}'")
         tasks = []
+        words_seen = set()
         for cid in card_ids:
             original_card = coll.get_card(cid)
-            original_note = original_card.note()
-            new_internal_note = InternalNote(coll, model, original_note)
+            word_to_translate = original_card.note().fields["word"]
+            if word_to_translate in words_seen:
+                logger.debug(f"Skipping duplicate word: {word_to_translate}")
+                continue
             if words_to_process and new_internal_note.word not in words_to_process:
                 continue
-            task = note_creator.create_new_note(
+            new_internal_note = InternalNote(coll, model, word_to_translate)
+            task = note_creator.create_notes(
                 new_internal_note, note_creator.create_new_note_from_dictionary
             )
             tasks.append(task)

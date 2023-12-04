@@ -3,17 +3,15 @@ import asyncio
 import re
 import urllib.parse
 from http import HTTPStatus
-from typing import List
+from typing import List, Tuple
 
 import aiohttp
 import async_lru
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
-from consts import Language
 from exceptions import RateLimitException
-from keywords import EnglishKeyword, Keyword, SpanishKeyword
-from sentences import SentencePair, SentencePairCollection, SpanishSentence, EnglishSentence
+from translation import Definition, SentencePair, Translation
 
 """
 A class that handles scraping the SpanishDict website for translation data, offering methods to find
@@ -71,181 +69,77 @@ class SpanishDictScraper:
                 raise RateLimitException()
             return BeautifulSoup(await response.text(), "html.parser")
     
-    """
-    For a given sentence div, returns a Keyword object containing the text of the keyword and
-    whether the keyword is a verb. The language parameter is used to determine whether the keyword
-    is Spanish or English.
-    """
-    def _find_keyword(self, sentence_div: Tag, verb: bool, language: Language) -> Keyword:
-        if language == Language.SPANISH:
-            return SpanishKeyword(text=sentence_div.find("strong").text, verb=verb)
-        elif language == Language.ENGLISH:
-            return EnglishKeyword(text=sentence_div.find("strong").text, verb=verb)
-        else:
-            raise ValueError(f"Invalid language: {language}")
+    def _get_translation_from_div(self, spanish_word: str, part_of_speech_div: Tag) -> Translation:
+        part_of_speech = part_of_speech_div.find("a").text
+        definition_divs: List[Tag] = part_of_speech_div.find_all(class_="tmBfjszm")
+        definitions: List[Definition] = []
+        for definition_div in definition_divs:
+            marker_tag: Tag = definition_div.find("a")
+            if not marker_tag:  # E.g., "no direct translation" has no hyperlink
+                continue
+            text = marker_tag.text
+            sentence_pairs = []
+            for marker_tag in definition_div.find_all("a"):
+                marker_tag: Tag
+                sentence_pair_enclosing_div = marker_tag.parent.parent
+                spanish_sentence_span = sentence_pair_enclosing_div.find("span", {"lang": "es"})
+                english_sentence_span = sentence_pair_enclosing_div.find("span", {"lang": "en"})
+                spanish_sentence = spanish_sentence_span.text
+                english_sentence = english_sentence_span.text
+                sentence_pair = SentencePair(spanish_sentence, english_sentence)
+                sentence_pairs.append(sentence_pair)
+            definition = Definition(text, sentence_pairs)
+            definitions.append(definition)
+        seen = set()
+        unique_definitions = []
+        for definition in definitions:
+            if definition.text not in seen:
+                seen.add(definition.text)
+                unique_definitions.append(definition)
+        return Translation(spanish_word, part_of_speech, unique_definitions)
     
     """
-    Filters a list of EnglishKeyword objects by the verb pattern. If the keyword is a verb, it must
-    start with "to ", and if it is not a verb, it must not start with "to ". This is to avoid issues
-    with Spanish keywords that are marked as either a noun or a verb but are translated as both,
-    such as "atardecer", which means both "dusk" (noun) or "to get dark" (verb).
+    Standardizes a given text by removing punctuation, whitespace, and capitalization.
     """
-    def _filter_english_keywords_by_verb_pattern(
-        self, english_keywords: List[EnglishKeyword]
-    ) -> List[EnglishKeyword]:
-        filtered = []
-        for keyword in english_keywords:
-            if keyword.verb and not keyword.text.startswith("to "):
-                continue
-            elif not keyword.verb and keyword.text.startswith("to "):
-                continue
-            filtered.append(keyword)
-        return filtered
-    
+    def _standardize(self, text: str) -> str:
+        text = re.sub(r"[.,;:!?-]", "", text)
+        return text.strip().lower()
+
     """
     For a given Spanish keyword, returns a list of SentencePair objects taken from the SpanishDict
     website. The "Dictionary" pane is used to find sentence pairs.
     """
-    async def sentence_pairs_from_dictionary_pane(
-        self, spanish_keyword: SpanishKeyword
-    ) -> List[SentencePair]:
-        url = f"{self.base_url}/translate/{spanish_keyword.standardize()}?langFrom=es"
+    async def translations_from_dictionary_pane(self, spanish_word: str) -> List[Translation]:
+        url = f"{self.base_url}/translate/{self._standardize(spanish_word)}?langFrom=es"
         soup = await self._get_soup(url)
         dictionary_neodict_es_div = soup.find("div", id="dictionary-neodict-es")
-        div = dictionary_neodict_es_div.find("div")
-        sentence_pairs = []
-        english_keywords_seen = set()
-        for marker_tag in div.find_all("a", {"lang": "en"}):
-            marker_tag: Tag
-            if marker_tag.text in english_keywords_seen:
-                continue
-            english_keywords_seen.add(marker_tag.text)
-            sentence_pair_enclosing_div = marker_tag.parent.parent
-            spanish_sentence_span = sentence_pair_enclosing_div.find("span", {"lang": "es"})
-            english_sentence_span = sentence_pair_enclosing_div.find("span", {"lang": "en"})
-            spanish_sentence = SpanishSentence(
-                text=spanish_sentence_span.text,
-                keyword=spanish_keyword
-            )
-            english_sentence = EnglishSentence(
-                text=english_sentence_span.text,
-                keyword=EnglishKeyword(marker_tag.text)
-            )
-            sentence_pair = SentencePair(spanish_sentence, english_sentence)
-            sentence_pairs.append(sentence_pair)
-        return sentence_pairs
-
-    """
-    For a given Spanish keyword, returns a list of SentencePair objects taken from the SpanishDict
-    website. The "Examples" pane is used to find sentence pairs.
-    """
-    async def sentence_pairs_from_examples_pane(
-        self, spanish_keyword: SpanishKeyword
-    ) -> List[SentencePair]:
-        url = f"{self.base_url}/examples/{spanish_keyword.standardize()}?lang=es"
-        soup = await self._get_soup(url)
-        example_rows: List[Tag] = soup.find_all("tr", {"data-testid": "example-row"})
-        sentence_pairs = []
-        for example in example_rows:
-            spanish_sentence_div = example.find("div", {"lang": "es"})
-            english_sentence_div = example.find("div", {"lang": "en"})
-            spanish_sentence = SpanishSentence(
-                text=spanish_sentence_div.text,
-                keyword=self._find_keyword(
-                    spanish_sentence_div, spanish_keyword.verb, Language.SPANISH
-                )
-            )
-            english_sentence = EnglishSentence(
-                text=english_sentence_div.text,
-                keyword=self._find_keyword(
-                    english_sentence_div, spanish_keyword.verb, Language.ENGLISH
-                )
-            )
-            sentence_pairs.append(SentencePair(spanish_sentence, english_sentence))
-        if not sentence_pairs:
-            raise ValueError(f"No translation data found for '{spanish_keyword}'")
-        return sentence_pairs
-    
-    """
-    For a given Spanish keyword, returns a translated list of English keywords taken from the
-    SpanishDict website. The "Dictionary" pane is used to find translations, specifically the
-    large, bold, hyperlinked text that appears just beneath the Spanish keyword, underneath the
-    search bar.
-    """
-    async def translate_from_dictionary(
-        self, spanish_keyword: SpanishKeyword
-    ) -> List[EnglishKeyword]:
-        url = f"{self.base_url}/translate/{spanish_keyword.standardize()}?langFrom=es"
-        soup = await self._get_soup(url)
-        translation_divs: List[Tag] = soup.find_all("div", id=re.compile(r"quickdef\d+-es"))
-        div_texts = [div.text for div in translation_divs]
-        keywords = [EnglishKeyword(text=text, verb=spanish_keyword.verb) for text in div_texts]
-        return self._filter_english_keywords_by_verb_pattern(keywords)
-
-    """
-    For a given Spanish keyword, returns a translated list of English keywords taken from the
-    SpanishDict website. The "Examples" pane is used to find translations, by finding the English
-    keywords that appear most frequently among the example sentences.
-    """
-    async def translate_from_examples(
-        self, spanish_keyword: SpanishKeyword
-    ) -> List[EnglishKeyword]:
-        sentence_pairs = await self.sentence_pairs_from_examples_pane(spanish_keyword)
-        sentence_pair_coll = SentencePairCollection(sentence_pairs)
-        keywords = sentence_pair_coll.most_common_english_keywords()
-        return self._filter_english_keywords_by_verb_pattern(keywords)
+        part_of_speech_divs: List[Tag] = dictionary_neodict_es_div.find_all(class_="W4_X2sG1")
+        all_translations = []
+        for part_of_speech_div in part_of_speech_divs:
+            translation = self._get_translation_from_div(spanish_word, part_of_speech_div)
+            all_translations.append(translation)
+        return all_translations
 
 """
 A demonstration of the SpanishDictScraper class. The Spanish word "hola" is used by default, but
-another word can be specified using the spanish_word argument. If the word is a verb, the verb
-argument should be set to True.
+another word can be specified using the spanish_word argument.
 """
-async def main(spanish_word: str = "hola", verb: bool = False):
-    spanish_keyword = SpanishKeyword(text=spanish_word, verb=verb)
+async def main(spanish_word: str = "hola"):
     scraper = SpanishDictScraper()
 
     print(f"Spanish word: {spanish_word}\n")
 
-    translations_from_dictionary = await scraper.translate_from_dictionary(spanish_keyword)
-    print(f"Translations from dictionary: {translations_from_dictionary}")
-
-    sentence_pairs = await scraper.sentence_pairs_from_dictionary_pane(spanish_keyword)
-    sentence_pair_coll = SentencePairCollection(sentence_pairs)
-    for keyword in translations_from_dictionary:
-        filtered_sentence_pairs = sentence_pair_coll.filter_by_english_keyword(keyword)
-        if not filtered_sentence_pairs:
-            continue
-        selected_sentence_pair = filtered_sentence_pairs[0]
-        print(f"Example Spanish sentence for '{spanish_keyword}' / '{keyword}': {selected_sentence_pair.spanish_sentence}")
-        print(f"Example English sentence for '{spanish_keyword}' / '{keyword}': {selected_sentence_pair.english_sentence}")
-    
-    print("\r")
-
-    translations_from_examples = await scraper.translate_from_examples(spanish_keyword)
-    print(f"Translations from examples: {translations_from_examples}")
-
-    sentence_pairs = await scraper.sentence_pairs_from_examples_pane(spanish_keyword)
-    sentence_pair_coll = SentencePairCollection(sentence_pairs)
-    most_common_english_keywords = sentence_pair_coll.most_common_english_keywords()
-    for english_keyword in most_common_english_keywords:
-        filtered_sentence_pairs = sentence_pair_coll.filter_by_english_keyword(english_keyword)
-        if not filtered_sentence_pairs:
-            continue
-        selected_sentence_pair = filtered_sentence_pairs[0]
-        print(f"Example Spanish sentence for '{spanish_keyword}' / '{english_keyword}': {selected_sentence_pair.spanish_sentence}")
-        print(f"Example English sentence for '{spanish_keyword}' / '{english_keyword}': {selected_sentence_pair.english_sentence}")
-
-    print("\r")
-
-    print(f"Requests made: {scraper.requests_made}")
+    translations = await scraper.translations_from_dictionary_pane(spanish_word)
+    for translation in translations:
+        print(translation.stringify(verbose=True))
+        print()
     await scraper.close_session()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Translate Spanish words to English.")
     parser.add_argument("--word", type=str, help="Spanish word to translate")
-    parser.add_argument("--verb", action="store_true", help="Whether the word is a verb")
     args = parser.parse_args()
     args.word = args.word or "hola"
 
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(spanish_word=args.word, verb=args.verb))
+    asyncio.run(main(spanish_word=args.word))
