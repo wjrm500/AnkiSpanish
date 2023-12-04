@@ -3,7 +3,12 @@ import asyncio
 import random
 from typing import List
 
-from genanki import Deck as AnkiDeck, Model as AnkiModel, Note as AnkiNote, Package as AnkiPackage
+from genanki import (
+    Deck as AnkiDeck,
+    Model as AnkiModel,
+    Note as AnkiNote,
+    Package as AnkiPackage,
+)
 
 from consts import PrintColour as PC
 from logger import logger
@@ -11,10 +16,7 @@ from note_creator import NoteCreator
 from scraper import SpanishDictScraper
 from source import AnkiPackageSource, CLISource, CSVSource, Source
 
-deck = AnkiDeck(
-        2059400110,
-        "Programmatically generated language learning flashcards"
-    )
+deck = AnkiDeck(2059400110, "Programmatically generated language learning flashcards")
 model = AnkiModel(
     1098765432,
     "Language learning flashcard model",
@@ -34,14 +36,18 @@ model = AnkiModel(
     ],
 )
 
-"""
-Creates a new Anki deck containing language learning flashcards with translations and example
-sentences for a given set of words. If no words are provided, the words to translate are extracted
-from the "A Frequency Dictionary of Spanish" deck in Anki.
-"""
+
 async def main(
-    concurrency_limit: int, words_to_translate: List[str], note_limit: int, output_to: str
+    concurrency_limit: int,
+    words_to_translate: List[str],
+    note_limit: int,
+    output_to: str,
 ) -> None:
+    """
+    Creates a new Anki deck containing language learning flashcards with translations and example
+    sentences for a given set of words. If no words are provided, the words to translate are extracted
+    from the "A Frequency Dictionary of Spanish" deck in Anki.
+    """
     if not words_to_translate:
         logger.warning("No words to translate, exiting")
         return
@@ -53,7 +59,7 @@ async def main(
         coro = note_creator.rate_limited_create_notes(word_to_translate)
         task = asyncio.create_task(coro)
         tasks.append(task)
-    
+
     max_word_length = max([len(word) for word in words_to_translate])
     words_processed, notes_to_create = 0, 0
     all_new_notes: List[AnkiNote] = []
@@ -65,7 +71,9 @@ async def main(
                 continue
             all_new_notes.extend(new_notes)
             notes_to_create += len(new_notes)
-            logger.debug(f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.RESET} - Prepared {PC.GREEN}{len(new_notes)}{PC.RESET} notes for word {PC.CYAN}{new_notes[0].fields[0]:{max_word_length}}{PC.RESET} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.RESET}")
+            logger.debug(
+                f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.RESET} - Prepared {PC.GREEN}{len(new_notes)}{PC.RESET} notes for word {PC.CYAN}{new_notes[0].fields[0]:{max_word_length}}{PC.RESET} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.RESET}"
+            )
             if note_limit and notes_to_create >= note_limit:
                 logger.info(f"Note limit of {note_limit} reached - stopping processing")
                 break
@@ -81,9 +89,14 @@ async def main(
     random.shuffle(all_new_notes)
     for new_note in all_new_notes:
         deck.add_note(note=new_note)
-        logger.debug(f"Created note for translation {PC.CYAN}{new_note.fields[0]} ({new_note.fields[1]}){PC.RESET}")
+        logger.debug(
+            f"Created note for translation {PC.CYAN}{new_note.fields[0]} ({new_note.fields[1]}){PC.RESET}"
+        )
     AnkiPackage(deck).write_to_file(output_to)
-    logger.info(f"Processing complete. Total web requests made: {scraper.requests_made}")
+    logger.info(
+        f"Processing complete. Total web requests made: {scraper.requests_made}"
+    )
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

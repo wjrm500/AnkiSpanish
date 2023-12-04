@@ -5,12 +5,13 @@ import sqlite3
 import zipfile
 from genanki import Deck, Note, Model
 
-"""
-A custom extension to the genanki library that allows for the loading of Anki decks from .apkg
-files. Should look into submitting a pull request to the genanki library to add this functionality
-to the library itself.
-"""
+
 def load_decks_from_package(apkg_filepath: str) -> List[Deck]:
+    """
+    A custom extension to the genanki library that allows for the loading of Anki decks from .apkg
+    files. Should look into submitting a pull request to the genanki library to add this functionality
+    to the library itself.
+    """
     with zipfile.ZipFile(apkg_filepath, "r") as z:
         z.extractall("/tmp")  # Extracts to a temporary directory
         db_path = "/tmp/collection.anki2"  # Path to the SQLite database
@@ -37,13 +38,20 @@ def load_decks_from_package(apkg_filepath: str) -> List[Deck]:
         deck = Deck(deck_id=deck_id, name=deck_info["name"])
 
         # Fetch Notes for this Deck
-        cursor.execute("SELECT id, mid, flds FROM notes WHERE id IN (SELECT nid FROM cards WHERE did=?)", (deck_id,))
+        cursor.execute(
+            "SELECT id, mid, flds FROM notes WHERE id IN (SELECT nid FROM cards WHERE did=?)",
+            (deck_id,),
+        )
         notes = cursor.fetchall()
 
         # Create Note Objects
         for _, model_id, flds in notes:
             model_data = models_data[str(model_id)]
-            model = Model(model_id=model_id, name=model_data["name"], fields=[{"name": fn} for fn in model_data["flds"]])
+            model = Model(
+                model_id=model_id,
+                name=model_data["name"],
+                fields=[{"name": fn} for fn in model_data["flds"]],
+            )
             note = Note(model=model, fields=flds.split("\x1f"))
             deck.add_note(note)
 
@@ -51,6 +59,7 @@ def load_decks_from_package(apkg_filepath: str) -> List[Deck]:
 
     conn.close()
     return loaded_decks
+
 
 if __name__ == "__main__":
     decks = load_decks_from_package("output.apkg")

@@ -1,5 +1,6 @@
 import enum
 
+
 class PrintColour(enum.Enum):
     RED = "\033[91m"
     GREEN = "\033[92m"
