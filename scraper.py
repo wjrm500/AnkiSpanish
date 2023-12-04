@@ -79,6 +79,9 @@ class SpanishDictScraper(Scraper):
 
     def _get_translation_from_div(self, spanish_word: str, part_of_speech_div: Tag) -> Translation:
         part_of_speech = part_of_speech_div.find("a").text
+        part_of_speech = part_of_speech_div.find(
+            class_=["VlFhSoPR", "L0ywlHB1", "cNX9vGLU", "CDAsok0l", "VEBez1ed"]
+        ).find(["a", "span"]).text
         definition_divs: List[Tag] = part_of_speech_div.find_all(class_="tmBfjszm")
         definitions: List[Definition] = []
         for definition_div in definition_divs:
