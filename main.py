@@ -60,7 +60,7 @@ async def main(access_limit: int, words_to_translate: List[str]) -> None:
         templates=[
             {
                 "name": "Card 1",
-                "qfmt": "<div style='text-align:center;'><span style='color:orange; font-size:20px; font-weight:bold'>{{word}}</span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",
+                "qfmt": "<div style='text-align:center;'><span style='color:orange; font-size:20px; font-weight:bold'><a href='https://www.spanishdict.com/translate/{{word}}?langFrom=es'>{{word}}</a></span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",
                 "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",
             }
         ],
