@@ -77,8 +77,9 @@ class Scraper(abc.ABC):
 class SpanishDictScraper(Scraper):
     base_url = "https://www.spanishdict.com"
 
-    def _get_translation_from_div(self, spanish_word: str, part_of_speech_div: Tag) -> Translation:
-        part_of_speech = part_of_speech_div.find("a").text
+    def _get_translation_from_div(
+        self, spanish_word: str, part_of_speech_div: Tag
+    ) -> Translation | None:
         part_of_speech = part_of_speech_div.find(
             class_=["VlFhSoPR", "L0ywlHB1", "cNX9vGLU", "CDAsok0l", "VEBez1ed"]
         ).find(["a", "span"]).text
@@ -92,13 +93,17 @@ class SpanishDictScraper(Scraper):
             sentence_pairs = []
             for marker_tag in definition_div.find_all("a"):
                 marker_tag: Tag
-                sentence_pair_enclosing_div = marker_tag.parent.parent
-                spanish_sentence_span = sentence_pair_enclosing_div.find("span", {"lang": "es"})
-                english_sentence_span = sentence_pair_enclosing_div.find("span", {"lang": "en"})
+                sentence_pair_enclosing_div: Tag = marker_tag.parent.parent
+                spanish_sentence_span: Tag = sentence_pair_enclosing_div.find("span", {"lang": "es"})
+                english_sentence_span: Tag = sentence_pair_enclosing_div.find("span", {"lang": "en"})
+                if not spanish_sentence_span or not english_sentence_span:
+                    continue
                 spanish_sentence = spanish_sentence_span.text
                 english_sentence = english_sentence_span.text
                 sentence_pair = SentencePair(spanish_sentence, english_sentence)
                 sentence_pairs.append(sentence_pair)
+            if not sentence_pairs:
+                continue
             definition = Definition(text, sentence_pairs)
             definitions.append(definition)
         seen = set()
@@ -107,6 +112,8 @@ class SpanishDictScraper(Scraper):
             if definition.text not in seen:
                 seen.add(definition.text)
                 unique_definitions.append(definition)
+        if not unique_definitions:
+            return None
         return Translation(spanish_word, part_of_speech, unique_definitions)
 
     async def translate(self, spanish_word: str) -> List[Translation]:
@@ -117,7 +124,8 @@ class SpanishDictScraper(Scraper):
         all_translations = []
         for part_of_speech_div in part_of_speech_divs:
             translation = self._get_translation_from_div(spanish_word, part_of_speech_div)
-            all_translations.append(translation)
+            if translation:
+                all_translations.append(translation)
         return all_translations
 
 """
