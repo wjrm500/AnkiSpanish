@@ -3,12 +3,10 @@ import asyncio
 import random
 from typing import List
 
-from genanki import (
-    Deck as AnkiDeck,
-    Model as AnkiModel,
-    Note as AnkiNote,
-    Package as AnkiPackage,
-)
+from genanki import Deck as AnkiDeck
+from genanki import Model as AnkiModel
+from genanki import Note as AnkiNote
+from genanki import Package as AnkiPackage
 
 from consts import PrintColour as PC
 from logger import logger

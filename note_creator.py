@@ -2,7 +2,8 @@ import asyncio
 import logging
 from typing import List
 
-from genanki import Model as AnkiModel, Note as AnkiNote
+from genanki import Model as AnkiModel
+from genanki import Note as AnkiNote
 
 from exceptions import RateLimitException
 from scraper import Scraper

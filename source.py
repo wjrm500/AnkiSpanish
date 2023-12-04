@@ -3,7 +3,9 @@ import csv
 import os
 from typing import List
 
-from genanki import Model as AnkiModel, Note as AnkiNote
+from genanki import Model as AnkiModel
+from genanki import Note as AnkiNote
+
 from genanki_extension import load_decks_from_package
 
 

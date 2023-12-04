@@ -1,9 +1,9 @@
 import json
-from typing import Any, Dict, List
-
 import sqlite3
 import zipfile
-from genanki import Deck, Note, Model
+from typing import Any, Dict, List
+
+from genanki import Deck, Model, Note
 
 
 def load_decks_from_package(apkg_filepath: str) -> List[Deck]:
