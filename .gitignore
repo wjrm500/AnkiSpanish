@@ -1,5 +1,6 @@
 venv/
 .vscode/
 __pycache__/
-*.txt
+source_code.txt
+todos.txt
 *.apkg

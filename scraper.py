@@ -20,6 +20,7 @@ to return a list of translations given a word to translate. This class contains 
 functionality around asynchronous HTTP requests and rate-limiting.
 """
 class Scraper(abc.ABC):
+    base_url: str
     requests_made = 0
 
     def __init__(self):
@@ -100,20 +101,21 @@ class SpanishDictScraper(Scraper):
     ) -> Translation | None:
         part_of_speech = part_of_speech_div.find(
             class_=["VlFhSoPR", "L0ywlHB1", "cNX9vGLU", "CDAsok0l", "VEBez1ed"]
-        ).find(["a", "span"]).text
+        ).find(["a", "span"]).text  # type: ignore
         definition_divs: List[Tag] = part_of_speech_div.find_all(class_="tmBfjszm")
         definitions: List[Definition] = []
         for definition_div in definition_divs:
-            marker_tag: Tag = definition_div.find("a")
-            if not marker_tag:  # E.g., "no direct translation" has no hyperlink
+            signal_tag = definition_div.find("a")
+            if not signal_tag:  # E.g., "no direct translation" has no hyperlink
                 continue
-            text = marker_tag.text
+            text = signal_tag.text
             sentence_pairs = []
             for marker_tag in definition_div.find_all("a"):
-                marker_tag: Tag
-                sentence_pair_enclosing_div: Tag = marker_tag.parent.parent
-                spanish_sentence_span: Tag = sentence_pair_enclosing_div.find("span", {"lang": "es"})
-                english_sentence_span: Tag = sentence_pair_enclosing_div.find("span", {"lang": "en"})
+                assert isinstance(marker_tag, Tag)
+                marker_tag_parent = marker_tag.parent
+                marker_tag_grandparent = marker_tag_parent.parent  # type: ignore[union-attr]
+                spanish_sentence_span = marker_tag_grandparent.find("span", {"lang": "es"})  # type: ignore[union-attr]
+                english_sentence_span = marker_tag_grandparent.find("span", {"lang": "en"})  # type: ignore[union-attr]
                 if not spanish_sentence_span or not english_sentence_span:
                     continue
                 spanish_sentence = spanish_sentence_span.text
@@ -142,8 +144,8 @@ class SpanishDictScraper(Scraper):
         url = f"{self.base_url}/translate/{self._standardize(spanish_word)}?langFrom=es"
         soup = await self._get_soup(url)
         dictionary_neodict_es_div = soup.find("div", id="dictionary-neodict-es")
-        part_of_speech_divs: List[Tag] = dictionary_neodict_es_div.find_all(class_="W4_X2sG1")
-        all_translations = []
+        part_of_speech_divs = dictionary_neodict_es_div.find_all(class_="W4_X2sG1")  # type: ignore[union-attr]
+        all_translations: List[Translation] = []
         for part_of_speech_div in part_of_speech_divs:
             translation = self._get_translation_from_part_of_speech_div(
                 spanish_word, part_of_speech_div

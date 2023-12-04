@@ -94,3 +94,4 @@ class NoteCreator:
                 return await self.create_notes(word_to_translate)
             except Exception as e:
                 logger.error(f"Error processing '{word_to_translate}': {e}")
+                return []

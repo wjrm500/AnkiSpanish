@@ -9,7 +9,7 @@ from consts import PrintColour as PC
 from logger import logger
 from note_creator import NoteCreator
 from scraper import SpanishDictScraper
-from source import AnkiPackageSource, CLISource, CSVSource
+from source import AnkiPackageSource, CLISource, CSVSource, Source
 
 deck = AnkiDeck(
         2059400110,
@@ -50,15 +50,15 @@ async def main(
     logger.info(f"Processing {len(words_to_translate)} words")
     tasks: List[asyncio.Task] = []
     for word_to_translate in words_to_translate:
-        task = note_creator.rate_limited_create_notes(word_to_translate)
-        task = asyncio.create_task(task)
+        coro = note_creator.rate_limited_create_notes(word_to_translate)
+        task = asyncio.create_task(coro)
         tasks.append(task)
     
     words_processed, notes_to_create = 0, 0
     all_new_notes: List[AnkiNote] = []
     try:
-        for task in asyncio.as_completed(tasks):
-            new_notes: List[AnkiNote] = await task
+        for completed_task in asyncio.as_completed(tasks):
+            new_notes: List[AnkiNote] = await completed_task
             words_processed += 1
             if not new_notes:
                 continue
@@ -96,6 +96,7 @@ if __name__ == "__main__":
     parser.add_argument("--output-to", type=str, default="output.apkg")
     args = parser.parse_args()
 
+    source: Source
     if args.words:
         source = CLISource(args.words)
     elif args.anki_package_path:

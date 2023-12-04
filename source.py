@@ -66,8 +66,8 @@ class AnkiPackageSource(Source):
         field_index = model.fields.index(desired_field)
         words_to_translate = []
         for note in deck.notes:
-            note: AnkiNote
-            words_to_translate.append(note.fields[field_index])
+            assert isinstance(note, AnkiNote)
+            words_to_translate.append(note.fields[field_index]) 
         return list(set(words_to_translate))
 
 """
