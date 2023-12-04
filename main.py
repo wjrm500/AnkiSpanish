@@ -54,6 +54,7 @@ async def main(
         task = asyncio.create_task(coro)
         tasks.append(task)
     
+    max_word_length = max([len(word) for word in words_to_translate])
     words_processed, notes_to_create = 0, 0
     all_new_notes: List[AnkiNote] = []
     try:
@@ -64,7 +65,7 @@ async def main(
                 continue
             all_new_notes.extend(new_notes)
             notes_to_create += len(new_notes)
-            logger.debug(f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.RESET} - Prepared {PC.GREEN}{len(new_notes)}{PC.RESET} notes for word {PC.CYAN}{new_notes[0].fields[0]:20}{PC.RESET} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.RESET}")
+            logger.debug(f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.RESET} - Prepared {PC.GREEN}{len(new_notes)}{PC.RESET} notes for word {PC.CYAN}{new_notes[0].fields[0]:{max_word_length}}{PC.RESET} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.RESET}")
             if note_limit and notes_to_create >= note_limit:
                 logger.info(f"Note limit of {note_limit} reached - stopping processing")
                 break
@@ -82,7 +83,7 @@ async def main(
         deck.add_note(note=new_note)
         logger.debug(f"Created note for translation {PC.CYAN}{new_note.fields[0]} ({new_note.fields[1]}){PC.RESET}")
     AnkiPackage(deck).write_to_file(output_to)
-    logger.info(f"Processing complete. Total requests made: {scraper.requests_made}")
+    logger.info(f"Processing complete. Total web requests made: {scraper.requests_made}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
