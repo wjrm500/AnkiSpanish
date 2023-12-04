@@ -59,8 +59,8 @@ class AnkiPackageSource(Source):
 
     def get_words_to_translate(self) -> List[str]:
         """
-        Gets words from an Anki package. The words are extracted from the specified deck, and the field
-        name is used to determine which field to get the words from for each note.
+        Gets words from an Anki package. The words are extracted from the specified deck, and the
+        field name is used to determine which field to get the words from for each note.
         """
         decks = load_decks_from_package(self.package_path)
         deck = next(
@@ -99,8 +99,8 @@ class CSVSource(Source):
 
     def get_words_to_translate(self) -> List[str]:
         """
-        Gets a list of words from a CSV file. The CSV file should have one word per row, with the word
-        in the first column.
+        Gets a list of words from a CSV file. The CSV file should have one word per row, with the
+        word in the first column.
         """
         words = []
         with open(self.file_path, mode="r", encoding="utf-8") as csv_file:

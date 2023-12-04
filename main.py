@@ -28,8 +28,8 @@ model = AnkiModel(
     templates=[
         {
             "name": "Card 1",
-            "qfmt": "<div style='text-align:center;'><span style='color:orange; font-size:20px; font-weight:bold'><a href='https://www.spanishdict.com/translate/{{word}}?langFrom=es' style='color: orange;'>{{word}}</a></span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",
-            "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",
+            "qfmt": "<div style='text-align:center;'><span style='color:orange; font-size:20px; font-weight:bold'><a href='https://www.spanishdict.com/translate/{{word}}?langFrom=es' style='color: orange;'>{{word}}</a></span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",  # noqa: E501
+            "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",  # noqa: E501
         }
     ],
 )
@@ -43,8 +43,7 @@ async def main(
 ) -> None:
     """
     Creates a new Anki deck containing language learning flashcards with translations and example
-    sentences for a given set of words. If no words are provided, the words to translate are extracted
-    from the "A Frequency Dictionary of Spanish" deck in Anki.
+    sentences for a given set of words.
     """
     if not words_to_translate:
         logger.warning("No words to translate, exiting")
@@ -70,7 +69,7 @@ async def main(
             all_new_notes.extend(new_notes)
             notes_to_create += len(new_notes)
             logger.debug(
-                f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.RESET} - Prepared {PC.GREEN}{len(new_notes)}{PC.RESET} notes for word {PC.CYAN}{new_notes[0].fields[0]:{max_word_length}}{PC.RESET} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.RESET}"
+                f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.RESET} - Prepared {PC.GREEN}{len(new_notes)}{PC.RESET} notes for word {PC.CYAN}{new_notes[0].fields[0]:{max_word_length}}{PC.RESET} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.RESET}"  # noqa: E501
             )
             if note_limit and notes_to_create >= note_limit:
                 logger.info(f"Note limit of {note_limit} reached - stopping processing")
@@ -88,7 +87,7 @@ async def main(
     for new_note in all_new_notes:
         deck.add_note(note=new_note)
         logger.debug(
-            f"Created note for translation {PC.CYAN}{new_note.fields[0]} ({new_note.fields[1]}){PC.RESET}"
+            f"Created note for translation {PC.CYAN}{new_note.fields[0]} ({new_note.fields[1]}){PC.RESET}"  # noqa: E501
         )
     AnkiPackage(deck).write_to_file(output_to)
     logger.info(

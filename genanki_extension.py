@@ -9,8 +9,8 @@ from genanki import Deck, Model, Note
 def load_decks_from_package(apkg_filepath: str) -> List[Deck]:
     """
     A custom extension to the genanki library that allows for the loading of Anki decks from .apkg
-    files. Should look into submitting a pull request to the genanki library to add this functionality
-    to the library itself.
+    files. Should look into submitting a pull request to the genanki library to add this
+    functionality to the library itself.
     """
     with zipfile.ZipFile(apkg_filepath, "r") as z:
         z.extractall("/tmp")  # Extracts to a temporary directory

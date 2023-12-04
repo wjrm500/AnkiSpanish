@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 class NoteCreator:
     """
-    A class responsible for creating AnkiNote objects from Translation objects. This class coordinates
-    the process of getting from a word to a list of notes, by first using a Scraper subclass to generate
-    a list of Translation objects for the word, and then calling an internal method to convert each
-    Translation object into an AnkiNote object.
+    A class responsible for creating AnkiNote objects from Translation objects. This class
+    coordinates the process of getting from a word to a list of notes, by first using a Scraper
+    subclass to generate a list of Translation objects for the word, and then calling an internal
+    method to convert each Translation object into an AnkiNote object.
     """
 
     def __init__(
@@ -32,8 +32,8 @@ class NoteCreator:
 
     def _combine_sentences(self, sentences: List[str]) -> str:
         """
-        Combines a list of sentences into a single string, with each sentence on a new line and prefixed
-        with its index.
+        Combines a list of sentences into a single string, with each sentence on a new line and
+        prefixed with its index.
         """
         if len(sentences) == 1:
             return sentences[0]
@@ -48,8 +48,8 @@ class NoteCreator:
     def _create_note_from_translation(self, translation: Translation) -> AnkiNote:
         """
         Creates an AnkiNote object from a given Translation object. This method is responsible for
-        taking the data retrieved from the website and converting it into an AnkiNote object. There is
-        a one-to-one relationship between translations and notes.
+        taking the data retrieved from the website and converting it into an AnkiNote object. There
+        is a one-to-one relationship between translations and notes.
         """
         source_sentences, target_sentences = [], []
         for definition in translation.definitions:
@@ -71,8 +71,8 @@ class NoteCreator:
     async def create_notes(self, word_to_translate: str) -> List[AnkiNote]:
         """
         Creates a list of AnkiNote objects from a given word. This method coordinates the process of
-        getting from a word to a list of notes, by first using a Scraper subclass to generate a list of
-        Translation objects for the word, and then calling an internal method to convert each
+        getting from a word to a list of notes, by first using a Scraper subclass to generate a list
+        of Translation objects for the word, and then calling an internal method to convert each
         Translation object into an AnkiNote object.
         """
         translations = await self.scraper.translate(word_to_translate)
@@ -81,19 +81,19 @@ class NoteCreator:
 
     async def rate_limited_create_notes(self, word_to_translate: str) -> List[AnkiNote]:
         """
-        A wrapper and interface for the note creation method above. This method provides rate limiting
-        functionality, allowing only a certain number of coroutines to access the scraper at a time. If
-        a rate limit is detected, the coroutines will wait until the rate limit has been lifted before
-        proceeding. This method also handles general exceptions.
+        A wrapper and interface for the note creation method above. This method provides rate
+        limiting functionality, allowing only a certain number of coroutines to access the scraper
+        at a time. If a rate limit is detected, the coroutines will wait until the rate limit has
+        been lifted before proceeding. This method also handles general exceptions.
         """
         async with self.semaphore:
             try:
                 return await self.create_notes(word_to_translate)
             except RateLimitException:
-                if (
-                    not self.rate_limit_handling_event.is_set()
-                ):  # Check if this coroutine is the first to handle the rate limit
-                    self.rate_limit_handling_event.set()  # Indicate that rate limit handling is in progress
+                # Check if this coroutine is the first to handle the rate limit
+                if not self.rate_limit_handling_event.is_set():
+                    # Indicate that rate limit handling is in progress
+                    self.rate_limit_handling_event.set()
                     reset_time = 30
                     logger.warning(
                         f"Rate limit activated. Waiting {reset_time} seconds..."
@@ -106,10 +106,13 @@ class NoteCreator:
                         )
                         await asyncio.sleep(reset_time)
                     self.rate_limit_event.set()
-                    self.rate_limit_handling_event.clear()  # Indicate that rate limit handling is complete
+
+                    # Indicate that rate limit handling is complete
+                    self.rate_limit_handling_event.clear()
                     logger.info("Rate limit deactivated")
                 else:
-                    await self.rate_limit_event.wait()  # Wait for the first coroutine to finish handling the rate limit
+                    # Wait for the first coroutine to finish handling the rate limit
+                    await self.rate_limit_event.wait()
                 return await self.create_notes(word_to_translate)
             except Exception as e:
                 logger.error(f"Error processing '{word_to_translate}': {e}")

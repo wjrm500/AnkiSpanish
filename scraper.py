@@ -32,8 +32,8 @@ class Scraper(abc.ABC):
     @async_lru.alru_cache(maxsize=128)
     async def _get_soup(self, url: str) -> BeautifulSoup:
         """
-        Returns a BeautifulSoup object from a given URL. The URL is first encoded to ensure that it is
-        valid, and the response is checked for rate-limiting. If the response is rate-limited, a
+        Returns a BeautifulSoup object from a given URL. The URL is first encoded to ensure that it
+        is valid, and the response is checked for rate-limiting. If the response is rate-limited, a
         RateLimitException is raised.
         """
         url = urllib.parse.quote(url, safe=":/?&=")
@@ -92,8 +92,8 @@ class Scraper(abc.ABC):
 class SpanishDictScraper(Scraper):
     """
     A scraper for SpanishDict.com, which translates Spanish words into English by accessing the
-    dictionary page for the given word, and then creating a separate Translation object for each part of
-    speech listed in the "Dictionary" pane.
+    dictionary page for the given word, and then creating a separate Translation object for each
+    part of speech listed in the "Dictionary" pane.
     """
 
     base_url = "https://www.spanishdict.com"
@@ -102,15 +102,15 @@ class SpanishDictScraper(Scraper):
         self, spanish_word: str, part_of_speech_div: Tag
     ) -> Translation | None:
         """
-        Returns a Translation object from a given part of speech div. If the part of speech div does not
-        contains only "No direct translation" definitions, or only definitions with no complete sentence
-        pairs, None is returned.
+        Returns a Translation object from a given part of speech div. If the part of speech div does
+        not contains only "No direct translation" definitions, or only definitions with no complete
+        sentence pairs, None is returned.
         """
         part_of_speech = (
             part_of_speech_div.find(
                 class_=["VlFhSoPR", "L0ywlHB1", "cNX9vGLU", "CDAsok0l", "VEBez1ed"]
-            )
-            .find(["a", "span"])
+            )  # type: ignore
+            .find(["a", "span"])  # type: ignore
             .text
         )  # type: ignore
         definition_divs: List[Tag] = part_of_speech_div.find_all(class_="tmBfjszm")
@@ -125,8 +125,12 @@ class SpanishDictScraper(Scraper):
                 assert isinstance(marker_tag, Tag)
                 marker_tag_parent = marker_tag.parent
                 marker_tag_grandparent = marker_tag_parent.parent  # type: ignore[union-attr]
-                spanish_sentence_span = marker_tag_grandparent.find("span", {"lang": "es"})  # type: ignore[union-attr]
-                english_sentence_span = marker_tag_grandparent.find("span", {"lang": "en"})  # type: ignore[union-attr]
+                spanish_sentence_span = marker_tag_grandparent.find(  # type: ignore[union-attr]
+                    "span", {"lang": "es"}
+                )
+                english_sentence_span = marker_tag_grandparent.find(  # type: ignore[union-attr]
+                    "span", {"lang": "en"}
+                )
                 if not spanish_sentence_span or not english_sentence_span:
                     continue
                 spanish_sentence = spanish_sentence_span.text
@@ -149,13 +153,16 @@ class SpanishDictScraper(Scraper):
 
     async def translate(self, spanish_word: str) -> List[Translation]:
         """
-        Translates a given Spanish word by accessing the dictionary page for the word, and then creating
-        a separate Translation object for each part of speech listed in the "Dictionary" pane.
+        Translates a given Spanish word by accessing the dictionary page for the word, and then
+        creating a separate Translation object for each part of speech listed in the "Dictionary"
+        pane.
         """
         url = f"{self.base_url}/translate/{self._standardize(spanish_word)}?langFrom=es"
         soup = await self._get_soup(url)
         dictionary_neodict_es_div = soup.find("div", id="dictionary-neodict-es")
-        part_of_speech_divs = dictionary_neodict_es_div.find_all(class_="W4_X2sG1")  # type: ignore[union-attr]
+        part_of_speech_divs = dictionary_neodict_es_div.find_all(  # type: ignore[union-attr]
+            class_="W4_X2sG1"
+        )
         all_translations: List[Translation] = []
         for part_of_speech_div in part_of_speech_divs:
             translation = self._get_translation_from_part_of_speech_div(
