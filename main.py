@@ -41,7 +41,7 @@ def get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck() 
         words_to_translate.append(word_to_translate)
     return list(set(words_to_translate))
 
-async def main(access_limit: int, words_to_translate: List[str]) -> None:
+async def main(access_limit: int, words_to_translate: List[str], output_to: str) -> None:
     if not words_to_translate:
         words_to_translate = get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck()
     scraper = SpanishDictScraper()
@@ -91,7 +91,7 @@ async def main(access_limit: int, words_to_translate: List[str]) -> None:
     for new_note in all_new_notes:
         deck.add_note(note=new_note)
         logger.debug(f"Added note for word {new_note.fields[0]}")
-    AnkiPackage(deck).write_to_file("output.apkg")
+    AnkiPackage(deck).write_to_file(output_to)
 
     await scraper.close_session()
     logger.info(f"Processing complete. Total requests made: {scraper.requests_made}")
@@ -100,7 +100,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--access-limit", type=int, default=1)
     parser.add_argument("--words", nargs="+", default=[])
+    parser.add_argument("--output-to", type=str, default="output.apkg")
     args = parser.parse_args()
 
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(args.access_limit, args.words))
+    asyncio.run(main(args.access_limit, args.words, args.output_to))
