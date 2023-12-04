@@ -8,11 +8,9 @@ from typing import List
 from genanki import Deck as AnkiDeck, Model as AnkiModel, Note as AnkiNote, Package as AnkiPackage
 
 from consts import PrintColour as PC
+from logger import logger
 from note_creator import NoteCreator
 from scraper import SpanishDictScraper
-
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
-logger = logging.getLogger(__name__)
 
 def get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck() -> List[str]:
     from anki.collection import Collection as AnkiCollection
@@ -33,7 +31,6 @@ def get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck() 
         return []
 
     card_ids = coll.decks.cids(coll.decks.id(original_deck_name))
-    logger.info(f"Processing {len(card_ids)} cards from '{original_deck_name}'")
     words_to_translate = []
     for cid in card_ids:
         original_card = coll.get_card(cid)
@@ -47,7 +44,7 @@ async def main(
     if not words_to_translate:
         words_to_translate = get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck()
     if not words_to_translate:
-        logger.error("No words to translate")
+        logger.warning("No words to translate, exiting")
         return
     scraper = SpanishDictScraper()
     deck = AnkiDeck(

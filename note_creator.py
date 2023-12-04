@@ -64,11 +64,11 @@ class NoteCreator:
                 if not self.rate_limit_handling_event.is_set():  # Check if this coroutine is the first to handle the rate limit
                     self.rate_limit_handling_event.set()  # Indicate that rate limit handling is in progress
                     reset_time = 30
-                    logger.error(f"{PC.RED}Rate limit activated. Waiting {reset_time} seconds...{PC.END}")
+                    logger.warning(f"Rate limit activated. Waiting {reset_time} seconds...")
                     self.rate_limit_event.clear()
                     await asyncio.sleep(reset_time)
                     while await self.scraper.rate_limited():
-                        logger.error(f"Rate limit still active. Waiting {reset_time} seconds...")
+                        logger.warning(f"Rate limit still active. Waiting {reset_time} seconds...")
                         await asyncio.sleep(reset_time)
                     self.rate_limit_event.set()
                     self.rate_limit_handling_event.clear()  # Indicate that rate limit handling is complete
@@ -77,4 +77,4 @@ class NoteCreator:
                     await self.rate_limit_event.wait()  # Wait for the first coroutine to finish handling the rate limit
                 return await self.create_notes(word_to_translate)
             except Exception as e:
-                logger.error(f"{PC.RED}Error processing '{word_to_translate}': {e}{PC.END}")
+                logger.error(f"Error processing '{word_to_translate}': {e}")
