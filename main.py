@@ -2,10 +2,12 @@ import argparse
 import asyncio
 import os
 import logging
+import random
 from typing import List
 
 from genanki import Deck as AnkiDeck, Model as AnkiModel, Note as AnkiNote, Package as AnkiPackage
 
+from consts import PrintColour as PC
 from note_creator import NoteCreator
 from scraper import SpanishDictScraper
 
@@ -73,17 +75,22 @@ async def main(access_limit: int, words_to_translate: List[str]) -> None:
         task = note_creator.rate_limited_create_notes(word_to_translate)
         tasks.append(task)
     
-    words_processed, notes_added = 0, 0
+    words_processed, notes_to_add = 0, 0
+    all_new_notes: List[AnkiNote] = []
     for task in asyncio.as_completed(tasks):
         new_notes: List[AnkiNote] = await task
         words_processed += 1
         if not new_notes:
             continue
-        for new_note in new_notes:
-            deck.add_note(note=new_note)
-        notes_added += len(new_notes)
-        logger.debug(f"Added {len(new_notes)} notes for word {new_notes[0].fields[0]} ({words_processed}/{len(tasks)})")
+        all_new_notes.extend(new_notes)
+        notes_to_add += len(new_notes)
+        logger.debug(f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.END} - Added {PC.GREEN}{len(new_notes)}{PC.END} notes for word {new_notes[0].fields[0]:20} - {PC.PURPLE}total notes to add: {notes_to_add}{PC.END}")
     
+    logger.info(f"Shuffling {len(all_new_notes)} notes")
+    random.shuffle(all_new_notes)
+    for new_note in all_new_notes:
+        deck.add_note(note=new_note)
+        logger.debug(f"Added note for word {new_note.fields[0]}")
     AnkiPackage(deck).write_to_file("output.apkg")
 
     await scraper.close_session()
