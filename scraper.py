@@ -14,6 +14,11 @@ from bs4.element import Tag
 from exceptions import RateLimitException
 from translation import Definition, SentencePair, Translation
 
+"""
+An abstract base class for scrapers. Scrapers are used to scrape translation data from a website
+to return a list of translations given a word to translate. This class contains some standard
+functionality around asynchronous HTTP requests and rate-limiting.
+"""
 class Scraper(abc.ABC):
     requests_made = 0
 
@@ -70,14 +75,27 @@ class Scraper(abc.ABC):
             self.requests_made += 1
             return response.status == HTTPStatus.TOO_MANY_REQUESTS
     
+    """
+    Translates a given word.
+    """
     @abc.abstractmethod
     async def translate(self, word_to_translate: str) -> List[Translation]:
         raise NotImplementedError()
 
+"""
+A scraper for SpanishDict.com, which translates Spanish words into English by accessing the
+dictionary page for the given word, and then creating a separate Translation object for each part of
+speech listed in the "Dictionary" pane.
+"""
 class SpanishDictScraper(Scraper):
     base_url = "https://www.spanishdict.com"
 
-    def _get_translation_from_div(
+    """
+    Returns a Translation object from a given part of speech div. If the part of speech div does not
+    contains only "No direct translation" definitions, or only definitions with no complete sentence
+    pairs, None is returned.
+    """
+    def _get_translation_from_part_of_speech_div(
         self, spanish_word: str, part_of_speech_div: Tag
     ) -> Translation | None:
         part_of_speech = part_of_speech_div.find(
@@ -116,6 +134,10 @@ class SpanishDictScraper(Scraper):
             return None
         return Translation(spanish_word, part_of_speech, unique_definitions)
 
+    """
+    Translates a given Spanish word by accessing the dictionary page for the word, and then creating
+    a separate Translation object for each part of speech listed in the "Dictionary" pane.
+    """
     async def translate(self, spanish_word: str) -> List[Translation]:
         url = f"{self.base_url}/translate/{self._standardize(spanish_word)}?langFrom=es"
         soup = await self._get_soup(url)
@@ -123,7 +145,9 @@ class SpanishDictScraper(Scraper):
         part_of_speech_divs: List[Tag] = dictionary_neodict_es_div.find_all(class_="W4_X2sG1")
         all_translations = []
         for part_of_speech_div in part_of_speech_divs:
-            translation = self._get_translation_from_div(spanish_word, part_of_speech_div)
+            translation = self._get_translation_from_part_of_speech_div(
+                spanish_word, part_of_speech_div
+            )
             if translation:
                 all_translations.append(translation)
         return all_translations
