@@ -12,6 +12,10 @@ from logger import logger
 from note_creator import NoteCreator
 from scraper import SpanishDictScraper
 
+"""
+Iterates over the cards in the "A Frequency Dictionary of Spanish" deck in Anki, and for each card,
+extracts the word to translate. This list of words is then returned.
+"""
 def get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck() -> List[str]:
     from anki.collection import Collection as AnkiCollection
     from anki.errors import DBError as AnkiDBError
@@ -38,6 +42,11 @@ def get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck() 
         words_to_translate.append(word_to_translate)
     return list(set(words_to_translate))
 
+"""
+Creates a new Anki deck containing language learning flashcards with translations and example
+sentences for a given set of words. If no words are provided, the words to translate are extracted
+from the "A Frequency Dictionary of Spanish" deck in Anki.
+"""
 async def main(
     concurrency_limit: int, words_to_translate: List[str], note_limit: int, output_to: str
 ) -> None:
