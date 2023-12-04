@@ -72,33 +72,40 @@ async def main(
     note_creator = NoteCreator(model, scraper, concurrency_limit)
 
     logger.info(f"Processing {len(words_to_translate)} words")
-    tasks = []
+    tasks: List[asyncio.Task] = []
     for word_to_translate in words_to_translate:
         task = note_creator.rate_limited_create_notes(word_to_translate)
+        task = asyncio.create_task(task)
         tasks.append(task)
     
-    words_processed, notes_to_add = 0, 0
+    words_processed, notes_to_create = 0, 0
     all_new_notes: List[AnkiNote] = []
-    for task in asyncio.as_completed(tasks):
-        if note_limit and notes_to_add >= note_limit:
-            logger.info(f"Note limit of {note_limit} reached - stopping processing")
-            break
-        new_notes: List[AnkiNote] = await task
-        words_processed += 1
-        if not new_notes:
-            continue
-        all_new_notes.extend(new_notes)
-        notes_to_add += len(new_notes)
-        logger.debug(f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.END} - Added {PC.GREEN}{len(new_notes)}{PC.END} notes for word {new_notes[0].fields[0]:20} - {PC.PURPLE}total notes to add: {notes_to_add}{PC.END}")
-    
+    try:
+        for task in asyncio.as_completed(tasks):
+            new_notes: List[AnkiNote] = await task
+            words_processed += 1
+            if not new_notes:
+                continue
+            all_new_notes.extend(new_notes)
+            notes_to_create += len(new_notes)
+            logger.debug(f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.END} - Prepared {PC.GREEN}{len(new_notes)}{PC.END} notes for word {PC.CYAN}{new_notes[0].fields[0]:20}{PC.END} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.END}")
+            if note_limit and notes_to_create >= note_limit:
+                logger.info(f"Note limit of {note_limit} reached - stopping processing")
+                break
+    finally:
+        remaining_tasks = [task for task in tasks if not task.done()]
+        for task in remaining_tasks:
+            task.cancel()
+        if remaining_tasks:  # Await the cancellation of the remaining tasks
+            await asyncio.gather(*remaining_tasks, return_exceptions=True)
+        await scraper.close_session()
+
     logger.info(f"Shuffling {len(all_new_notes)} notes")
     random.shuffle(all_new_notes)
     for new_note in all_new_notes:
         deck.add_note(note=new_note)
-        logger.debug(f"Added note for word {new_note.fields[0]}")
+        logger.debug(f"Created note for translation {PC.CYAN}{new_note.fields[0]} ({new_note.fields[1]}){PC.END}")
     AnkiPackage(deck).write_to_file(output_to)
-
-    await scraper.close_session()
     logger.info(f"Processing complete. Total requests made: {scraper.requests_made}")
 
 if __name__ == "__main__":
