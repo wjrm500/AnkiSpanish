@@ -41,7 +41,9 @@ def get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck() 
         words_to_translate.append(word_to_translate)
     return list(set(words_to_translate))
 
-async def main(concurrency_limit: int, words_to_translate: List[str], output_to: str) -> None:
+async def main(
+    concurrency_limit: int, words_to_translate: List[str], note_limit: int, output_to: str
+) -> None:
     if not words_to_translate:
         words_to_translate = get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck()
     scraper = SpanishDictScraper()
@@ -78,6 +80,9 @@ async def main(concurrency_limit: int, words_to_translate: List[str], output_to:
     words_processed, notes_to_add = 0, 0
     all_new_notes: List[AnkiNote] = []
     for task in asyncio.as_completed(tasks):
+        if note_limit and notes_to_add >= note_limit:
+            logger.info(f"Note limit of {note_limit} reached - stopping processing")
+            break
         new_notes: List[AnkiNote] = await task
         words_processed += 1
         if not new_notes:
@@ -100,8 +105,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--concurrency-limit", type=int, default=1)
     parser.add_argument("--words", nargs="+", default=[])
+    parser.add_argument("--note-limit", type=int, default=0)
     parser.add_argument("--output-to", type=str, default="output.apkg")
     args = parser.parse_args()
 
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(args.concurrency_limit, args.words, args.output_to))
+    asyncio.run(main(args.concurrency_limit, args.words, args.note_limit, args.output_to))
