@@ -9,5 +9,5 @@ class PrintColour(enum.Enum):
     CYAN = "\033[96m"
     RESET = "\033[0m"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value

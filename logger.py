@@ -13,7 +13,7 @@ class CustomFormatter(logging.Formatter):
         logging.CRITICAL: PC.RED.value + FORMAT + PC.RESET.value
     }
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         log_fmt = self.FORMATS.get(record.levelno, self.FORMAT)
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)

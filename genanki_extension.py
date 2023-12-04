@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import sqlite3
 import zipfile
@@ -22,12 +22,12 @@ def load_decks_from_package(apkg_filepath: str) -> List[Deck]:
     # Fetch Decks
     cursor.execute("SELECT decks FROM col")
     decks_json = cursor.fetchone()[0]
-    decks_data: Dict = json.loads(decks_json)
+    decks_data: Dict[str, Dict[str, Any]] = json.loads(decks_json)
 
     # Fetch Models
     cursor.execute("SELECT models FROM col")
     models_json = cursor.fetchone()[0]
-    models_data: Dict = json.loads(models_json)
+    models_data: Dict[str, Dict[str, Any]] = json.loads(models_json)
 
     # Create Deck Objects
     loaded_decks: List[Deck] = []

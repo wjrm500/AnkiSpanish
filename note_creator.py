@@ -35,14 +35,16 @@ class NoteCreator:
         for definition in translation.definitions:
             source_sentences.append(definition.sentence_pairs[0].source_sentence)
             target_sentences.append(definition.sentence_pairs[0].target_sentence)
-        combine_sentences = lambda sentences: (
-            sentences[0] if len(sentences) == 1 else "<br>".join(
-                [
-                    f"<span style='color: darkgray'>[{i}]</span> {s}"
-                    for i, s in enumerate(sentences, 1)
-                ]
-            )
-        )
+        def combine_sentences(sentences: List[str]) -> str:
+            if len(sentences) == 1:
+                return sentences[0]
+            else:
+                return "<br>".join(
+                    [
+                        f"<span style='color: darkgray'>[{i}]</span> {s}"
+                        for i, s in enumerate(sentences, 1)
+                    ]
+                )
         field_dict = {
             "word": translation.word_to_translate,
             "part_of_speech": translation.part_of_speech,

@@ -21,9 +21,10 @@ functionality around asynchronous HTTP requests and rate-limiting.
 """
 class Scraper(abc.ABC):
     base_url: str
-    requests_made = 0
+    requests_made: int = 0
+    session: aiohttp.ClientSession | None = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.session = None
     
     """
@@ -36,6 +37,7 @@ class Scraper(abc.ABC):
         url = urllib.parse.quote(url, safe=":/?&=")
         if not self.session or self.session.closed:
             await self.start_session()
+        assert self.session
         async with self.session.get(url) as response:
             self.requests_made += 1
             if response.status == HTTPStatus.TOO_MANY_REQUESTS:
@@ -52,14 +54,14 @@ class Scraper(abc.ABC):
     """
     Starts an asynchronous HTTP session.
     """
-    async def start_session(self):
+    async def start_session(self) -> None:
         if self.session is None or self.session.closed:
             self.session = aiohttp.ClientSession()
 
     """
     Closes the asynchronous HTTP session.
     """
-    async def close_session(self):
+    async def close_session(self) -> None:
         if self.session:
             await self.session.close()
 
@@ -72,6 +74,7 @@ class Scraper(abc.ABC):
     async def rate_limited(self) -> bool:
         if not self.session or self.session.closed:
             await self.start_session()
+        assert self.session
         async with self.session.get(self.base_url) as response:
             self.requests_made += 1
             return response.status == HTTPStatus.TOO_MANY_REQUESTS
@@ -158,7 +161,7 @@ class SpanishDictScraper(Scraper):
 A demonstration of the SpanishDictScraper class. The Spanish word "hola" is used by default, but
 another word can be specified using the spanish_word argument.
 """
-async def main(spanish_word: str = "hola"):
+async def main(spanish_word: str = "hola") -> None:
     scraper = SpanishDictScraper()
 
     print(f"Spanish word: {spanish_word}\n")

@@ -48,7 +48,7 @@ async def main(
     scraper = SpanishDictScraper()
     note_creator = NoteCreator(model, scraper, concurrency_limit)
     logger.info(f"Processing {len(words_to_translate)} words")
-    tasks: List[asyncio.Task] = []
+    tasks: List[asyncio.Task[List[AnkiNote]]] = []
     for word_to_translate in words_to_translate:
         coro = note_creator.rate_limited_create_notes(word_to_translate)
         task = asyncio.create_task(coro)
