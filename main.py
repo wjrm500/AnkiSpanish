@@ -1,7 +1,5 @@
 import argparse
 import asyncio
-import os
-import logging
 import random
 from typing import List
 
@@ -11,36 +9,30 @@ from consts import PrintColour as PC
 from logger import logger
 from note_creator import NoteCreator
 from scraper import SpanishDictScraper
+from source import AnkiPackageSource, CLISource, CSVSource
 
-"""
-Iterates over the cards in the "A Frequency Dictionary of Spanish" deck in Anki, and for each card,
-extracts the word to translate. This list of words is then returned.
-"""
-def get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck() -> List[str]:
-    from anki.collection import Collection as AnkiCollection
-    from anki.errors import DBError as AnkiDBError
-
-    collection_path = "C:\\Users\\wjrm5\\AppData\\Roaming\\Anki2\\User 1\\collection.anki2"
-    original_deck_name = "A Frequency Dictionary of Spanish"
-    
-    if not os.path.exists(collection_path):
-        logger.error(f"Collection not found at {collection_path}")
-        return
-
-    logger.info(f"Loading collection from {collection_path}")
-    try:
-        coll = AnkiCollection(collection_path)
-    except AnkiDBError:
-        logger.error("Collection is already open in another Anki instance - is Anki running?")
-        return []
-
-    card_ids = coll.decks.cids(coll.decks.id(original_deck_name))
-    words_to_translate = []
-    for cid in card_ids:
-        original_card = coll.get_card(cid)
-        word_to_translate = original_card.note().fields[1]
-        words_to_translate.append(word_to_translate)
-    return list(set(words_to_translate))
+deck = AnkiDeck(
+        2059400110,
+        "Programmatically generated language learning flashcards"
+    )
+model = AnkiModel(
+    1098765432,
+    "Language learning flashcard model",
+    fields=[
+        {"name": "word"},
+        {"name": "part_of_speech"},
+        {"name": "definition"},
+        {"name": "source_sentences"},
+        {"name": "target_sentences"},
+    ],
+    templates=[
+        {
+            "name": "Card 1",
+            "qfmt": "<div style='text-align:center;'><span style='color:orange; font-size:20px; font-weight:bold'><a href='https://www.spanishdict.com/translate/{{word}}?langFrom=es' style='color: orange;'>{{word}}</a></span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",
+            "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",
+        }
+    ],
+)
 
 """
 Creates a new Anki deck containing language learning flashcards with translations and example
@@ -51,35 +43,10 @@ async def main(
     concurrency_limit: int, words_to_translate: List[str], note_limit: int, output_to: str
 ) -> None:
     if not words_to_translate:
-        words_to_translate = get_words_to_translate_from__A_Frequency_Dictionary_of_Spanish__anki_deck()
-    if not words_to_translate:
         logger.warning("No words to translate, exiting")
         return
-    deck = AnkiDeck(
-        2059400110,
-        "Programmatically generated language learning flashcards"
-    )
-    model = AnkiModel(
-        1098765432,
-        "Language learning flashcard model",
-        fields=[
-            {"name": "word"},
-            {"name": "part_of_speech"},
-            {"name": "definition"},
-            {"name": "source_sentences"},
-            {"name": "target_sentences"},
-        ],
-        templates=[
-            {
-                "name": "Card 1",
-                "qfmt": "<div style='text-align:center;'><span style='color:orange; font-size:20px; font-weight:bold'><a href='https://www.spanishdict.com/translate/{{word}}?langFrom=es' style='color: orange;'>{{word}}</a></span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",
-                "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",
-            }
-        ],
-    )
     scraper = SpanishDictScraper()
     note_creator = NoteCreator(model, scraper, concurrency_limit)
-
     logger.info(f"Processing {len(words_to_translate)} words")
     tasks: List[asyncio.Task] = []
     for word_to_translate in words_to_translate:
@@ -121,9 +88,29 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--concurrency-limit", type=int, default=1)
     parser.add_argument("--words", nargs="+", default=[])
+    parser.add_argument("--anki-package-path", type=str, default="")
+    parser.add_argument("--anki-deck-name", type=str, default="")
+    parser.add_argument("--anki-field-name", type=str, default="Word")
+    parser.add_argument("--csv", type=str, default="")
     parser.add_argument("--note-limit", type=int, default=0)
     parser.add_argument("--output-to", type=str, default="output.apkg")
     args = parser.parse_args()
 
+    if args.words:
+        source = CLISource(args.words)
+    elif args.anki_package_path:
+        source = AnkiPackageSource(
+            package_path=args.anki_package_path,
+            deck_name=args.anki_deck_name,
+            field_name=args.anki_field_name,
+        )
+    elif args.csv:
+        source = CSVSource(args.csv)
+    else:
+        logger.error("Must provide either --words, --anki-package-path or --csv")
+        exit(1)
+
+    words = source.get_words_to_translate()
+
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(main(args.concurrency_limit, args.words, args.note_limit, args.output_to))
+    asyncio.run(main(args.concurrency_limit, words, args.note_limit, args.output_to))
