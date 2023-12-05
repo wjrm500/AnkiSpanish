@@ -85,7 +85,7 @@ class ScraperFactory:
     @staticmethod
     def create_scraper(scraper_type: str) -> Scraper:
         if scraper_type == "collins":
-            return CollinsScraper()
+            return CollinsOnlineSpanishDictionaryScraper()
         elif scraper_type == "spanishdict":
             return SpanishDictScraper()
         else:
@@ -176,7 +176,7 @@ class SpanishDictScraper(Scraper):
         return all_translations
 
 
-class CollinsScraper(Scraper):
+class CollinsOnlineSpanishDictionaryScraper(Scraper):
     base_url = "https://www.collinsdictionary.com/dictionary/spanish-english"
 
     async def translate(self, word_to_translate: str) -> List[Translation]:

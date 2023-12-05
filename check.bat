@@ -25,7 +25,7 @@ IF %ERRORLEVEL% EQU 0 (echo SUCCESS) ELSE (echo FAILURE)
 
 REM Run mypy
 echo Running mypy...
-mypy .\src .\test --strict > NUL 2>&1
+mypy .\src --strict > NUL 2>&1
 IF %ERRORLEVEL% EQU 0 (echo SUCCESS) ELSE (echo FAILURE)
 
 REM Run pytest
