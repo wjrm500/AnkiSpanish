@@ -1,6 +1,7 @@
 from typing import List
 
 from constant import PrintColour as PC
+from synonym import SynonymChecker
 
 
 def truncate_string(string: str, max_length: int = 20) -> str:
@@ -89,6 +90,10 @@ class Translation:
     a translation.
     """
 
+    # Class variables
+    remove_synonymous_definitions: bool = False
+
+    # Instance variables
     word_to_translate: str
     part_of_speech: str
     definitions: List[Definition]
@@ -112,6 +117,16 @@ class Translation:
         self.word_to_translate = word_to_translate
         self.part_of_speech = part_of_speech
         self.definitions = definitions[:max_definitions]
+        if self.remove_synonymous_definitions:
+            marks = SynonymChecker.mark_synonymous_words(
+                [definition.text for definition in self.definitions],
+                pos=self.part_of_speech,
+            )
+            self.definitions = [
+                definition
+                for definition, mark in zip(self.definitions, marks)
+                if not mark
+            ]
 
     def stringify(self, verbose: bool = False) -> str:
         s = f"{PC.GREEN}{self.word_to_translate} ({self.part_of_speech}) - {', '.join([definition.text for definition in self.definitions])}{PC.RESET}"  # noqa: E501
