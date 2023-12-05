@@ -187,5 +187,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args.word = args.word or "hola"
 
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main(spanish_word=args.word))
