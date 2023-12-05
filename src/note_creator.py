@@ -18,9 +18,7 @@ class NoteCreator:
     method to convert each Translation object into an AnkiNote object.
     """
 
-    def __init__(
-        self, model: AnkiModel, scraper: Scraper, concurrency_limit: int = 1
-    ) -> None:
+    def __init__(self, model: AnkiModel, scraper: Scraper, concurrency_limit: int = 1) -> None:
         self.model = model
         self.scraper = scraper
         self.rate_limit_event = asyncio.Event()
@@ -93,15 +91,11 @@ class NoteCreator:
                     # Indicate that rate limit handling is in progress
                     self.rate_limit_handling_event.set()
                     reset_time = 30
-                    logger.warning(
-                        f"Rate limit activated. Waiting {reset_time} seconds..."
-                    )
+                    logger.warning(f"Rate limit activated. Waiting {reset_time} seconds...")
                     self.rate_limit_event.clear()
                     await asyncio.sleep(reset_time)
                     while await self.scraper.rate_limited():
-                        logger.warning(
-                            f"Rate limit still active. Waiting {reset_time} seconds..."
-                        )
+                        logger.warning(f"Rate limit still active. Waiting {reset_time} seconds...")
                         await asyncio.sleep(reset_time)
                     self.rate_limit_event.set()
 

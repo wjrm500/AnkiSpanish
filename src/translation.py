@@ -123,9 +123,7 @@ class Translation:
                 pos=self.part_of_speech,
             )
             self.definitions = [
-                definition
-                for definition, mark in zip(self.definitions, marks)
-                if not mark
+                definition for definition, mark in zip(self.definitions, marks) if not mark
             ]
 
     def stringify(self, verbose: bool = False) -> str:

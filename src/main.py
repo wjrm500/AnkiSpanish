@@ -91,26 +91,43 @@ async def main(
             f"Created note for translation {PC.CYAN}{new_note.fields[0]} ({new_note.fields[1]}){PC.RESET}"  # noqa: E501
         )
     AnkiPackage(deck).write_to_file(output_to)
-    logger.info(
-        f"Processing complete. Total web requests made: {scraper.requests_made}"
-    )
+    logger.info(f"Processing complete. Total web requests made: {scraper.requests_made}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--concurrency-limit", type=int, default=1)
-    parser.add_argument("--words", nargs="+", default=[])
-    parser.add_argument("--anki-package-path", type=str, default="")
-    parser.add_argument("--anki-deck-name", type=str, default="")
-    parser.add_argument("--anki-field-name", type=str, default="Word")
-    parser.add_argument("--csv", type=str, default="")
-    parser.add_argument("--note-limit", type=int, default=0)
-    parser.add_argument("--output-to", type=str, default="output.apkg")
-    parser.add_argument("--verbose", action="store_true")
+
+    # Source arguments
+    parser.add_argument("--words", nargs="+", default=[], help="Words to translate")
+    parser.add_argument("--anki-package-path", type=str, default="", help="Path to .apkg")
+    parser.add_argument(
+        "--anki-deck-name", type=str, default="", help="Name of deck inside package"
+    )
+    parser.add_argument(
+        "--anki-field-name", type=str, default="Word", help="Name of field inside note"
+    )
+    parser.add_argument("--csv", type=str, default="", help="Path to .csv")
+
     # Scraper argument
     parser.add_argument(
         "--scraper-type", type=str, default="spanishdict", help="Scraper type to use"
     )
+
+    # Minor arguments
+    parser.add_argument(
+        "--concurrency-limit",
+        type=int,
+        default=1,
+        help="Number of coroutines to run concurrently",
+    )
+    parser.add_argument(
+        "--note-limit", type=int, default=0, help="Maximum number of notes to create"
+    )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+
+    # Output argument
+    parser.add_argument("--output-to", type=str, default="output.apkg", help="Path to output file")
+
     args = parser.parse_args()
 
     source: Source

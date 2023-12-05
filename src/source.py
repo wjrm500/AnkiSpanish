@@ -38,9 +38,7 @@ class AnkiPackageSource(Source):
     deck_name: str
     field_name: str
 
-    def __init__(
-        self, package_path: str, deck_name: str, field_name: str = "Word"
-    ) -> None:
+    def __init__(self, package_path: str, deck_name: str, field_name: str = "Word") -> None:
         if not os.path.exists(package_path):
             raise FileNotFoundError(f"Package not found at {package_path}")
         self.package_path = package_path
