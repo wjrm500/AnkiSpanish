@@ -1,4 +1,5 @@
 venv/
+venv-dev/
 .vscode/
 __pycache__/
 source_code.txt

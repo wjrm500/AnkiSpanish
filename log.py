@@ -1,5 +1,5 @@
 import logging
-from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
+from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
 
 from constant import PrintColour as PC
 
