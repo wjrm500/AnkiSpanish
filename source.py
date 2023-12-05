@@ -10,22 +10,16 @@ from genanki_extension import load_decks_from_package
 
 
 class Source(abc.ABC):
-    """
-    An abstract base class that represents a source of words to be translated.
-    """
+    """An abstract base class that represents a source of words to be translated."""
 
     @abc.abstractmethod
     def get_words_to_translate(self) -> List[str]:
-        """
-        Abstract method to get a list of words from the source.
-        """
+        """Abstract method to get a list of words from the source."""
         raise NotImplementedError
 
 
-    """
-    Source class for getting words from CLI arguments.
-    """
 class SimpleSource(Source):
+    """Source class for getting words from a simple list"""
 
     words: List[str]
 
@@ -33,16 +27,12 @@ class SimpleSource(Source):
         self.words = words
 
     def get_words_to_translate(self) -> List[str]:
-        """
-        Simply returns a de-duplicated list of the words provided to the constructor.
-        """
+        """Simply returns a de-duplicated list of the words provided to the constructor."""
         return list(set(self.words))
 
 
 class AnkiPackageSource(Source):
-    """
-    Source class for getting words from an Anki package.
-    """
+    """Source class for getting words from an Anki package."""
 
     package_path: str
     deck_name: str
@@ -86,9 +76,7 @@ class AnkiPackageSource(Source):
 
 
 class CSVSource(Source):
-    """
-    Source class for getting words from a CSV file.
-    """
+    """Source class for getting words from a CSV file."""
 
     file_path: str
     col_num: int

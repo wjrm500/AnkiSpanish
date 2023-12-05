@@ -6,8 +6,11 @@ from nltk.corpus.reader.wordnet import Lemma, Synset
 
 
 class SynonymChecker:
+    """A class with various methods related to checking if words are synonyms."""
+
     @staticmethod
     def get_synonyms(word: str, pos: str = "n") -> Set[str]:
+        """Returns a set of synonyms for the given word."""
         synonyms = set()
         for synset in wordnet.synsets(word, pos=pos):
             assert isinstance(synset, Synset)
@@ -18,6 +21,7 @@ class SynonymChecker:
 
     @staticmethod
     def are_synonymous(word1: str, word2: str, pos: str = "n") -> bool:
+        """Returns True if the two words are synonyms, False otherwise."""
         synonyms_word1 = SynonymChecker.get_synonyms(word1, pos=pos)
         synonyms_word2 = SynonymChecker.get_synonyms(word2, pos=pos)
         return bool(synonyms_word1 & synonyms_word2)

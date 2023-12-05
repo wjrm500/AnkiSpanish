@@ -47,23 +47,17 @@ class Scraper(abc.ABC):
             return BeautifulSoup(await response.text(), "html.parser")
 
     def _standardize(self, text: str) -> str:
-        """
-        Standardizes a given text by removing punctuation, whitespace, and capitalization.
-        """
+        """Standardizes a given text by removing punctuation, whitespace, and capitalization."""
         text = re.sub(r"[.,;:!?-]", "", text)
         return text.strip().lower()
 
     async def start_session(self) -> None:
-        """
-        Starts an asynchronous HTTP session.
-        """
+        """Starts an asynchronous HTTP session."""
         if self.session is None or self.session.closed:
             self.session = aiohttp.ClientSession()
 
     async def close_session(self) -> None:
-        """
-        Closes the asynchronous HTTP session.
-        """
+        """Closes the asynchronous HTTP session."""
         if self.session:
             await self.session.close()
 
@@ -83,9 +77,7 @@ class Scraper(abc.ABC):
 
     @abc.abstractmethod
     async def translate(self, word_to_translate: str) -> List[Translation]:
-        """
-        Translates a given word.
-        """
+        """Translates a given word."""
         raise NotImplementedError()
 
 
