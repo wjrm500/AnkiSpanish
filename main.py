@@ -78,8 +78,9 @@ async def main(
         remaining_tasks = [task for task in tasks if not task.done()]
         for task in remaining_tasks:
             task.cancel()
-        if remaining_tasks:  # Await the cancellation of the remaining tasks
-            await asyncio.gather(*remaining_tasks)
+        if remaining_tasks:
+            # Set return_exceptions to True so that CancelledError exceptions are not raised
+            await asyncio.gather(*remaining_tasks, return_exceptions=True)
         await scraper.close_session()
 
     logger.info(f"Shuffling {len(all_new_notes)} notes")
@@ -127,5 +128,4 @@ if __name__ == "__main__":
     if args.verbose:
         logger.setLevel(DEBUG)
 
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main(args.concurrency_limit, words, args.note_limit, args.output_to))
