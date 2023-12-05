@@ -12,10 +12,10 @@ from log import logger
 
 class NoteCreator:
     """
-    A class responsible for creating AnkiNote objects from language_element objects. This class
-    coordinates the process of getting from a word to a list of notes, by first using a Dictionary
-    to retrieve a list of Translation objects for the word, and then calling an internal method to
-    convert each Translation object into an AnkiNote object.
+    A class responsible for coordinating the process of getting from a word to a list of Anki notes.
+    It achieves this by first using a Dictionary to retrieve a list of Translation objects for the
+    word, and then calling an internal method to convert each Translation object into an AnkiNote
+    object.
     """
 
     def __init__(
@@ -44,11 +44,7 @@ class NoteCreator:
             )
 
     def _create_note_from_translation(self, translation: Translation) -> AnkiNote:
-        """
-        Creates an AnkiNote object from a given Translation object. This method is responsible for
-        taking the data retrieved from the website and converting it into an AnkiNote object. There
-        is a one-to-one relationship between translations and notes.
-        """
+        """Creates an AnkiNote object from a given Translation object."""
         source_sentences, target_sentences = [], []
         for definition in translation.definitions:
             source_sentences.append(definition.sentence_pairs[0].source_sentence)
@@ -69,8 +65,8 @@ class NoteCreator:
     async def create_notes(self, word_to_translate: str) -> List[AnkiNote]:
         """
         Creates a list of AnkiNote objects from a given word. This method coordinates the process of
-        getting from a word to a list of notes, by first using a Dictionary to retrieve a list of
-        Translation objects for the word, and then calling an internal method to convert each
+        getting from a word to a list of Anki notes, by first using a Dictionary to retrieve a list
+        of Translation objects for the word, and then calling an internal method to convert each
         Translation object into an AnkiNote object.
         """
         translations = await self.dictionary.translate(word_to_translate)
@@ -78,10 +74,10 @@ class NoteCreator:
 
     async def rate_limited_create_notes(self, word_to_translate: str) -> List[AnkiNote]:
         """
-        A wrapper and interface for the note creation method above. This method provides rate
-        limiting functionality, allowing only a certain number of coroutines to access the
-        dictionary at a time. If a rate limit is detected, the coroutines will wait until the rate
-        limit has been lifted before proceeding. This method also handles general exceptions.
+        A wrapper and interface for the note creation method create_notes. This wrapper method
+        provides rate limiting functionality, allowing only a certain number of coroutines to access
+        the dictionary at a time. If a rate limit is detected, the coroutines will wait until the
+        rate limit has been lifted before proceeding. This method also handles general exceptions.
         """
         async with self.semaphore:
             try:
