@@ -28,6 +28,10 @@ class SynonymChecker:
 
     @staticmethod
     def mark_synonymous_words(words: List[str], pos: str = "n") -> List[int]:
+        """
+        Returns a list of marks, where a mark of 1 indicates that the corresponding word is
+        synonymous with an earlier word in the list.
+        """
         marks = [0] * len(words)
         synonym_groups = [SynonymChecker.get_synonyms(word, pos) for word in words]
         for i in range(len(synonym_groups)):
@@ -35,7 +39,7 @@ class SynonymChecker:
             for j in range(len(synonym_groups))[i + 1:]:
                 comparand = synonym_groups[j]
                 if comparator & comparand:
-                    marks[j] += 1
+                    marks[j] = 1
         return marks
 
 
