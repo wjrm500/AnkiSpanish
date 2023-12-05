@@ -79,7 +79,7 @@ async def main(
         for task in remaining_tasks:
             task.cancel()
         if remaining_tasks:  # Await the cancellation of the remaining tasks
-            await asyncio.gather(*remaining_tasks, return_exceptions=True)
+            await asyncio.gather(*remaining_tasks)
         await scraper.close_session()
 
     logger.info(f"Shuffling {len(all_new_notes)} notes")

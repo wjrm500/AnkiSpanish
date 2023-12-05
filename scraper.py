@@ -112,7 +112,7 @@ class SpanishDictScraper(Scraper):
             )  # type: ignore
             .find(["a", "span"])  # type: ignore
             .text
-        )  # type: ignore
+        )
         definition_divs: List[Tag] = part_of_speech_div.find_all(class_="tmBfjszm")
         definitions: List[Definition] = []
         for definition_div in definition_divs:
