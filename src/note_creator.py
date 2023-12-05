@@ -91,6 +91,7 @@ class NoteCreator:
                     logger.warning(f"Rate limit activated. Waiting {reset_time} seconds...")
                     self.rate_limit_event.clear()
                     await asyncio.sleep(reset_time)
+                    assert self.dictionary.retriever is not None
                     while await self.dictionary.retriever.rate_limited():
                         logger.warning(f"Rate limit still active. Waiting {reset_time} seconds...")
                         await asyncio.sleep(reset_time)

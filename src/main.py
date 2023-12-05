@@ -97,7 +97,9 @@ async def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Create Anki deck for language learning. Provide either --words, --anki-package-path or --csv as a source of words"  # noqa: E501
+    )
 
     # Source arguments
     parser.add_argument("--words", nargs="+", default=[], help="Words to translate")

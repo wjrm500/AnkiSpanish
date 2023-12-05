@@ -1,16 +1,21 @@
 import abc
 import argparse
 import asyncio
+import json
+import os
 import re
 import urllib.parse
 from http import HTTPStatus
-from typing import List
+from typing import Any, Dict, List
 
 import aiohttp
 import async_lru
 from bs4 import BeautifulSoup
 from bs4.element import Tag
+from dotenv import load_dotenv
+from openai import AsyncOpenAI
 
+from constant import OPEN_AI_SYSTEM_PROMPT, Language, OpenAIModel
 from exception import RateLimitException
 from language_element import Definition, SentencePair, Translation
 
@@ -64,6 +69,19 @@ class Retriever(abc.ABC):
         raise NotImplementedError()
 
 
+class RetrieverFactory:
+    @staticmethod
+    def create_retriever(retriever_type: str) -> Retriever:
+        if retriever_type == "openai":
+            return OpenAIAPIRetriever()
+        elif retriever_type == "collinsspanish":
+            return CollinsSpanishWebsiteScraper()
+        elif retriever_type == "spanishdict":
+            return SpanishDictWebsiteScraper()
+        else:
+            raise ValueError(f"Unknown retriever type: {retriever_type}")
+
+
 class WebsiteScraper(Retriever):
     """
     An abstract class for website scrapers. WebsiteScraper objects are retrievers that specifically
@@ -88,15 +106,74 @@ class WebsiteScraper(Retriever):
             return BeautifulSoup(await response.text(), "html.parser")
 
 
-class RetrieverFactory:
-    @staticmethod
-    def create_retriever(retriever_type: str) -> Retriever:
-        if retriever_type == "collins":
-            return CollinsSpanishWebsiteScraper()
-        elif retriever_type == "spanishdict":
-            return SpanishDictWebsiteScraper()
-        else:
-            raise ValueError(f"Unknown retriever type: {retriever_type}")
+class APIRetriever(Retriever):
+    api_key: str | None = None
+
+
+class OpenAIAPIRetriever(APIRetriever):
+    language: Language
+    model: OpenAIModel
+
+    def __init__(self) -> None:
+        super().__init__()
+        load_dotenv()
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.client = AsyncOpenAI(api_key=self.api_key)
+
+        # Get language and model from user - done via command line for now to keep things simple
+        while True:
+            try:
+                self.language = Language(
+                    input(
+                        f"Enter the language of the words being translated. Options are: {', '.join(Language.options())}\n"  # noqa: E501
+                    )
+                )
+                break
+            except ValueError:
+                print("Invalid language, please try again.")
+        while True:
+            try:
+                self.model = OpenAIModel(
+                    input(
+                        f"Enter the model to use for translation. Options are: {', '.join(OpenAIModel.options())}\n"  # noqa: E501
+                    )
+                )
+                break
+            except ValueError:
+                print("Invalid model, please try again.")
+
+    async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
+        response = await self.client.chat.completions.create(
+            model=self.model.value,
+            messages=[
+                {"role": "system", "content": OPEN_AI_SYSTEM_PROMPT},
+                {"role": "user", "content": f"{self.language.value}: {word_to_translate}"},
+            ],
+        )
+        self.requests_made += 1
+        if not (content := response.choices[0].message.content):
+            return []
+        response_json: Dict[str, Any] = json.loads(content)
+        translation_dicts = response_json["translations"]
+        translations = []
+        for translation_dict in translation_dicts:
+            definitions = []
+            for definition_dict in translation_dict["definitions"]:
+                sentence_pairs = []
+                for sentence_pair_dict in definition_dict["sentence_pairs"]:
+                    sentence_pair = SentencePair(
+                        sentence_pair_dict["source_sentence"], sentence_pair_dict["target_sentence"]
+                    )
+                    sentence_pairs.append(sentence_pair)
+                definition = Definition(definition_dict["text"], sentence_pairs)
+                definitions.append(definition)
+            translation = Translation(
+                translation_dict["word_to_translate"],
+                translation_dict["part_of_speech"],
+                definitions,
+            )
+            translations.append(translation)
+        return translations
 
 
 class SpanishDictWebsiteScraper(WebsiteScraper):

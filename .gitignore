@@ -5,3 +5,4 @@ __pycache__/
 source_code.txt
 todos.txt
 output.apkg
+.env
