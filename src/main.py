@@ -11,7 +11,7 @@ from genanki import Package as AnkiPackage
 from constant import PrintColour as PC
 from log import DEBUG, logger
 from note_creator import NoteCreator
-from scraper import SpanishDictScraper
+from scraper import Scraper, ScraperFactory
 from source import AnkiPackageSource, CSVSource, SimpleSource, Source
 
 deck = AnkiDeck(2059400110, "Programmatically generated language learning flashcards")
@@ -36,10 +36,11 @@ model = AnkiModel(
 
 
 async def main(
-    concurrency_limit: int,
     words_to_translate: List[str],
-    note_limit: int,
-    output_to: str,
+    scraper: Scraper,
+    concurrency_limit: int = 1,
+    note_limit: int = 0,
+    output_to: str = "output.apkg",
 ) -> None:
     """
     Creates a new Anki deck containing language learning flashcards with translations and example
@@ -48,7 +49,6 @@ async def main(
     if not words_to_translate:
         logger.warning("No words to translate, exiting")
         return
-    scraper = SpanishDictScraper()
     note_creator = NoteCreator(model, scraper, concurrency_limit)
     logger.info(f"Processing {len(words_to_translate)} words")
     tasks: List[asyncio.Task[List[AnkiNote]]] = []
@@ -107,6 +107,10 @@ if __name__ == "__main__":
     parser.add_argument("--note-limit", type=int, default=0)
     parser.add_argument("--output-to", type=str, default="output.apkg")
     parser.add_argument("--verbose", action="store_true")
+    # Scraper argument
+    parser.add_argument(
+        "--scraper-type", type=str, default="spanishdict", help="Scraper type to use"
+    )
     args = parser.parse_args()
 
     source: Source
@@ -125,7 +129,9 @@ if __name__ == "__main__":
         exit(1)
     words = source.get_words_to_translate()
 
+    scraper = ScraperFactory.create_scraper(args.scraper_type)
+
     if args.verbose:
         logger.setLevel(DEBUG)
 
-    asyncio.run(main(args.concurrency_limit, words, args.note_limit, args.output_to))
+    asyncio.run(main(words, scraper, args.concurrency_limit, args.note_limit, args.output_to))

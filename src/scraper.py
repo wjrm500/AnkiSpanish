@@ -81,6 +81,17 @@ class Scraper(abc.ABC):
         raise NotImplementedError()
 
 
+class ScraperFactory:
+    @staticmethod
+    def create_scraper(scraper_type: str) -> Scraper:
+        if scraper_type == "collins":
+            return CollinsScraper()
+        elif scraper_type == "spanishdict":
+            return SpanishDictScraper()
+        else:
+            raise ValueError(f"Unknown scraper type: {scraper_type}")
+
+
 class SpanishDictScraper(Scraper):
     """
     A scraper for SpanishDict.com, which translates Spanish words into English by accessing the
@@ -165,16 +176,25 @@ class SpanishDictScraper(Scraper):
         return all_translations
 
 
-async def main(spanish_word: str = "hola") -> None:
+class CollinsScraper(Scraper):
+    base_url = "https://www.collinsdictionary.com/dictionary/spanish-english"
+
+    async def translate(self, word_to_translate: str) -> List[Translation]:
+        # TODO: Implement
+        return []
+
+
+async def main(word_to_translate: str = "hola", scraper: Scraper | None = None) -> None:
     """
     A demonstration of the SpanishDictScraper class. The Spanish word "hola" is used by default, but
     another word can be specified using the spanish_word argument.
     """
-    scraper = SpanishDictScraper()
+    print(f"Word to translate: {word_to_translate}\n")
 
-    print(f"Spanish word: {spanish_word}\n")
+    if not scraper:
+        scraper = ScraperFactory.create_scraper("spanishdict")
 
-    translations = await scraper.translate(spanish_word)
+    translations = await scraper.translate(word_to_translate)
     for translation in translations:
         print(translation.stringify(verbose=True))
         print()
@@ -182,9 +202,11 @@ async def main(spanish_word: str = "hola") -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Translate Spanish words to English.")
-    parser.add_argument("--word", type=str, help="Spanish word to translate")
+    parser = argparse.ArgumentParser(description="Translate words by scraping online dictionaries.")
+    parser.add_argument("--word", type=str, default="hola", help="Word to translate")
+    parser.add_argument(
+        "--scraper-type", type=str, default="spanishdict", help="Scraper type to use"
+    )
     args = parser.parse_args()
-    args.word = args.word or "hola"
-
-    asyncio.run(main(spanish_word=args.word))
+    scraper = ScraperFactory.create_scraper(args.scraper_type)
+    asyncio.run(main(args.word, scraper))
