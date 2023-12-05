@@ -1,0 +1,75 @@
+import sys
+
+sys.path.append("./src")
+
+import os  # noqa: E402
+import unittest  # noqa: E402
+import zipfile  # noqa: E402
+
+from genanki_extension import load_decks_from_package  # noqa: E402
+
+
+class TestGenankiExtension(unittest.TestCase):
+    apkg_file_path: str
+    extracted_folder: str
+    db_path: str
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Path to the Anki package for testing
+        cls.apkg_file_path = "./test/data/freq_dict.apkg"
+        cls.extracted_folder = "/tmp/test_anki_extracted"
+
+        # Ensure the extraction folder exists
+        if not os.path.exists(cls.extracted_folder):
+            os.makedirs(cls.extracted_folder)
+
+        # Extract the Anki package
+        with zipfile.ZipFile(cls.apkg_file_path, "r") as z:
+            z.extractall(cls.extracted_folder)
+
+        # Path to the SQLite database extracted
+        cls.db_path = os.path.join(cls.extracted_folder, "collection.anki2")
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        # Clean up the extracted files
+        if os.path.exists(cls.extracted_folder):
+            for file in os.listdir(cls.extracted_folder):
+                os.remove(os.path.join(cls.extracted_folder, file))
+            os.rmdir(cls.extracted_folder)
+
+    def test_load_decks_from_package_success(self) -> None:
+        # Load decks from the .apkg file
+        decks = load_decks_from_package(self.apkg_file_path)
+
+        # Assert that there is exactly one deck and its name is correct
+        self.assertEqual(len(decks), 1)
+        self.assertEqual(decks[0].name, "A Frequency Dictionary of Spanish")
+
+        # Assert that the deck contains exactly 5,000 notes
+        self.assertEqual(len(decks[0].notes), 5000)
+
+        # Assert that the deck contains a note with the expected fields
+        expected_fields = {
+            "Rank": "1",
+            "Word": "el, la",
+            "Part-of-Speech": "art",
+            "Definition": "the (+m, f)",
+            "Spanish": "el diccionario tenía también frases útiles",
+            "English": "the dictionary also had useful phrases",
+            "Freq": "2055835 | 201481381",
+        }
+        note_found = False
+        for note in decks[0].notes:
+            note_fields = {
+                field_name: note.fields[idx] for idx, field_name in enumerate(expected_fields)
+            }
+            if note_fields == expected_fields:
+                note_found = True
+                break
+        self.assertTrue(note_found, "Note with the specified fields was not found.")
+
+
+if __name__ == "__main__":
+    unittest.main()
