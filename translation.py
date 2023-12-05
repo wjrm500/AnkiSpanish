@@ -1,6 +1,6 @@
 from typing import List
 
-from consts import PrintColour as PC
+from constant import PrintColour as PC
 
 
 def truncate_string(string: str, max_length: int = 20) -> str:

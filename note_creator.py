@@ -5,7 +5,7 @@ from typing import List
 from genanki import Model as AnkiModel
 from genanki import Note as AnkiNote
 
-from exceptions import RateLimitException
+from exception import RateLimitException
 from scraper import Scraper
 from translation import Translation
 

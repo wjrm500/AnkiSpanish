@@ -1,6 +1,6 @@
 import logging
 
-from consts import PrintColour as PC
+from constant import PrintColour as PC
 
 
 class CustomFormatter(logging.Formatter):

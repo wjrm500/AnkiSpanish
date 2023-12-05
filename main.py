@@ -8,7 +8,7 @@ from genanki import Model as AnkiModel
 from genanki import Note as AnkiNote
 from genanki import Package as AnkiPackage
 
-from consts import PrintColour as PC
+from constant import PrintColour as PC
 from logger import logger
 from note_creator import NoteCreator
 from scraper import SpanishDictScraper

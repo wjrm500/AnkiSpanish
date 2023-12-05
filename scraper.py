@@ -11,7 +11,7 @@ import async_lru
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
-from exceptions import RateLimitException
+from exception import RateLimitException
 from translation import Definition, SentencePair, Translation
 
 
