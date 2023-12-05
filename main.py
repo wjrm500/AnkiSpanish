@@ -9,7 +9,7 @@ from genanki import Note as AnkiNote
 from genanki import Package as AnkiPackage
 
 from constant import PrintColour as PC
-from logger import logger
+from log import DEBUG, logger
 from note_creator import NoteCreator
 from scraper import SpanishDictScraper
 from source import AnkiPackageSource, CSVSource, SimpleSource, Source
@@ -105,6 +105,7 @@ if __name__ == "__main__":
     parser.add_argument("--csv", type=str, default="")
     parser.add_argument("--note-limit", type=int, default=0)
     parser.add_argument("--output-to", type=str, default="output.apkg")
+    parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
 
     source: Source
@@ -121,8 +122,10 @@ if __name__ == "__main__":
     else:
         logger.error("Must provide either --words, --anki-package-path or --csv")
         exit(1)
-
     words = source.get_words_to_translate()
+
+    if args.verbose:
+        logger.setLevel(DEBUG)
 
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main(args.concurrency_limit, words, args.note_limit, args.output_to))
