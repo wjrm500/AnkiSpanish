@@ -36,7 +36,7 @@ class SynonymChecker:
         synonym_groups = [SynonymChecker.get_synonyms(word, pos) for word in words]
         for i in range(len(synonym_groups)):
             comparator = synonym_groups[i]
-            for j in range(len(synonym_groups))[i + 1:]:
+            for j in range(len(synonym_groups))[i + 1 :]:
                 comparand = synonym_groups[j]
                 if comparator & comparand:
                     marks[j] = 1
