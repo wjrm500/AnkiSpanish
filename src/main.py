@@ -9,9 +9,10 @@ from genanki import Note as AnkiNote
 from genanki import Package as AnkiPackage
 
 from constant import PrintColour as PC
+from dictionary import Dictionary
 from log import DEBUG, logger
 from note_creator import NoteCreator
-from scraper import Scraper, ScraperFactory
+from retriever import Retriever, RetrieverFactory
 from source import AnkiPackageSource, CSVSource, SimpleSource, Source
 
 deck = AnkiDeck(2059400110, "Programmatically generated language learning flashcards")
@@ -37,7 +38,7 @@ model = AnkiModel(
 
 async def main(
     words_to_translate: List[str],
-    scraper: Scraper,
+    retriever: Retriever,
     concurrency_limit: int = 1,
     note_limit: int = 0,
     output_to: str = "output.apkg",
@@ -49,7 +50,8 @@ async def main(
     if not words_to_translate:
         logger.warning("No words to translate, exiting")
         return
-    note_creator = NoteCreator(model, scraper, concurrency_limit)
+    dictionary = Dictionary(retriever)
+    note_creator = NoteCreator(model, dictionary, concurrency_limit)
     logger.info(f"Processing {len(words_to_translate)} words")
     tasks: List[asyncio.Task[List[AnkiNote]]] = []
     for word_to_translate in words_to_translate:
@@ -81,7 +83,7 @@ async def main(
         if remaining_tasks:
             # Set return_exceptions to True so that CancelledError exceptions are not raised
             await asyncio.gather(*remaining_tasks, return_exceptions=True)
-        await scraper.close_session()
+        await retriever.close_session()
 
     logger.info(f"Shuffling {len(all_new_notes)} notes")
     random.shuffle(all_new_notes)
@@ -91,7 +93,7 @@ async def main(
             f"Created note for translation {PC.CYAN}{new_note.fields[0]} ({new_note.fields[1]}){PC.RESET}"  # noqa: E501
         )
     AnkiPackage(deck).write_to_file(output_to)
-    logger.info(f"Processing complete. Total web requests made: {scraper.requests_made}")
+    logger.info(f"Processing complete. Total web requests made: {retriever.requests_made}")
 
 
 if __name__ == "__main__":
@@ -108,9 +110,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--csv", type=str, default="", help="Path to .csv")
 
-    # Scraper argument
+    # Retriever argument
     parser.add_argument(
-        "--scraper-type", type=str, default="spanishdict", help="Scraper type to use"
+        "--retriever-type", type=str, default="spanishdict", help="Retriever type to use"
     )
 
     # Minor arguments
@@ -146,9 +148,9 @@ if __name__ == "__main__":
         exit(1)
     words = source.get_words_to_translate()
 
-    scraper = ScraperFactory.create_scraper(args.scraper_type)
+    retriever = RetrieverFactory.create_retriever(args.retriever_type)
 
     if args.verbose:
         logger.setLevel(DEBUG)
 
-    asyncio.run(main(words, scraper, args.concurrency_limit, args.note_limit, args.output_to))
+    asyncio.run(main(words, retriever, args.concurrency_limit, args.note_limit, args.output_to))

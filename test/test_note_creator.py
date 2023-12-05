@@ -7,8 +7,8 @@ from genanki import Model as AnkiModel
 from genanki import Note as AnkiNote
 
 from exception import RateLimitException
+from language_element import Definition, SentencePair, Translation
 from note_creator import NoteCreator
-from translation import Definition, SentencePair, Translation
 
 
 @pytest.fixture
@@ -28,8 +28,8 @@ def model(field_keys: List[str]) -> AnkiModel:
 
 @pytest.fixture
 def note_creator(model: AnkiModel) -> NoteCreator:
-    scraper = AsyncMock()
-    return NoteCreator(model, scraper, concurrency_limit=1)
+    dictionary = AsyncMock()
+    return NoteCreator(model, dictionary, concurrency_limit=1)
 
 
 @pytest.fixture
@@ -77,7 +77,7 @@ def test_create_note_from_translation(
 async def test_create_notes(
     field_values: List[str], note_creator: NoteCreator, translation: Translation
 ) -> None:
-    note_creator.scraper.translate.return_value = [translation]
+    note_creator.dictionary.translate.return_value = [translation]
     notes = await note_creator.create_notes("test")
     assert len(notes) == 1
     assert notes[0].fields == field_values
@@ -87,7 +87,7 @@ async def test_create_notes(
 async def test_rate_limited_create_notes(
     note_creator: NoteCreator, translation: Translation
 ) -> None:
-    note_creator.scraper.translate.return_value = [translation]
+    note_creator.dictionary.translate.return_value = [translation]
     notes = await note_creator.rate_limited_create_notes("test")
     assert len(notes) == 1
     assert notes[0].fields == [
@@ -104,8 +104,8 @@ async def test_rate_limited_create_notes_with_rate_limit_exception(
     note_creator: NoteCreator, translation: Translation
 ) -> None:
     asyncio.sleep = AsyncMock()
-    note_creator.scraper.rate_limited = AsyncMock(return_value=False)
-    note_creator.scraper.translate = AsyncMock(side_effect=[RateLimitException, [translation]])
+    note_creator.dictionary.retriever.rate_limited = AsyncMock(return_value=False)
+    note_creator.dictionary.translate = AsyncMock(side_effect=[RateLimitException, [translation]])
     notes = await note_creator.rate_limited_create_notes("test")
     assert len(notes) == 1
     assert notes[0].fields == [
@@ -116,15 +116,15 @@ async def test_rate_limited_create_notes_with_rate_limit_exception(
         "Target sentence",
     ]
     assert asyncio.sleep.call_count == 1
-    assert note_creator.scraper.rate_limited.call_count == 1
-    assert note_creator.scraper.translate.call_count == 2
+    assert note_creator.dictionary.retriever.rate_limited.call_count == 1
+    assert note_creator.dictionary.translate.call_count == 2
 
 
 @pytest.mark.asyncio
 async def test_rate_limited_create_notes_with_general_exception(
     note_creator: NoteCreator, translation: Translation
 ) -> None:
-    note_creator.scraper.translate.return_value = [translation]
+    note_creator.dictionary.translate.return_value = [translation]
     note_creator.create_notes = AsyncMock(side_effect=Exception)
     notes = await note_creator.rate_limited_create_notes("test")
     assert notes == []

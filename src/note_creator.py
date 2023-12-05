@@ -4,23 +4,25 @@ from typing import List
 from genanki import Model as AnkiModel
 from genanki import Note as AnkiNote
 
+from dictionary import Dictionary
 from exception import RateLimitException
+from language_element import Translation
 from log import logger
-from scraper import Scraper
-from translation import Translation
 
 
 class NoteCreator:
     """
-    A class responsible for creating AnkiNote objects from Translation objects. This class
-    coordinates the process of getting from a word to a list of notes, by first using a Scraper
-    subclass to generate a list of Translation objects for the word, and then calling an internal
-    method to convert each Translation object into an AnkiNote object.
+    A class responsible for creating AnkiNote objects from language_element objects. This class
+    coordinates the process of getting from a word to a list of notes, by first using a Dictionary
+    to retrieve a list of Translation objects for the word, and then calling an internal method to
+    convert each Translation object into an AnkiNote object.
     """
 
-    def __init__(self, model: AnkiModel, scraper: Scraper, concurrency_limit: int = 1) -> None:
+    def __init__(
+        self, model: AnkiModel, dictionary: Dictionary, concurrency_limit: int = 1
+    ) -> None:
         self.model = model
-        self.scraper = scraper
+        self.dictionary = dictionary
         self.rate_limit_event = asyncio.Event()
         self.rate_limit_event.set()  # Setting the event allows all coroutines to proceed
         self.rate_limit_handling_event = asyncio.Event()
@@ -67,20 +69,19 @@ class NoteCreator:
     async def create_notes(self, word_to_translate: str) -> List[AnkiNote]:
         """
         Creates a list of AnkiNote objects from a given word. This method coordinates the process of
-        getting from a word to a list of notes, by first using a Scraper subclass to generate a list
-        of Translation objects for the word, and then calling an internal method to convert each
+        getting from a word to a list of notes, by first using a Dictionary to retrieve a list of
+        Translation objects for the word, and then calling an internal method to convert each
         Translation object into an AnkiNote object.
         """
-        translations = await self.scraper.translate(word_to_translate)
-        # Filter translations?
+        translations = await self.dictionary.translate(word_to_translate)
         return [self._create_note_from_translation(t) for t in translations]
 
     async def rate_limited_create_notes(self, word_to_translate: str) -> List[AnkiNote]:
         """
         A wrapper and interface for the note creation method above. This method provides rate
-        limiting functionality, allowing only a certain number of coroutines to access the scraper
-        at a time. If a rate limit is detected, the coroutines will wait until the rate limit has
-        been lifted before proceeding. This method also handles general exceptions.
+        limiting functionality, allowing only a certain number of coroutines to access the
+        dictionary at a time. If a rate limit is detected, the coroutines will wait until the rate
+        limit has been lifted before proceeding. This method also handles general exceptions.
         """
         async with self.semaphore:
             try:
@@ -94,7 +95,7 @@ class NoteCreator:
                     logger.warning(f"Rate limit activated. Waiting {reset_time} seconds...")
                     self.rate_limit_event.clear()
                     await asyncio.sleep(reset_time)
-                    while await self.scraper.rate_limited():
+                    while await self.dictionary.retriever.rate_limited():
                         logger.warning(f"Rate limit still active. Waiting {reset_time} seconds...")
                         await asyncio.sleep(reset_time)
                     self.rate_limit_event.set()
