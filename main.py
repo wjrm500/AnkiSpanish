@@ -12,7 +12,7 @@ from constant import PrintColour as PC
 from logger import logger
 from note_creator import NoteCreator
 from scraper import SpanishDictScraper
-from source import AnkiPackageSource, CLISource, CSVSource, Source
+from source import AnkiPackageSource, CSVSource, SimpleSource, Source
 
 deck = AnkiDeck(2059400110, "Programmatically generated language learning flashcards")
 model = AnkiModel(
@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     source: Source
     if args.words:
-        source = CLISource(args.words)
+        source = SimpleSource(args.words)
     elif args.anki_package_path:
         source = AnkiPackageSource(
             package_path=args.anki_package_path,

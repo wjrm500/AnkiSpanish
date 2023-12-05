@@ -22,10 +22,10 @@ class Source(abc.ABC):
         raise NotImplementedError
 
 
-class CLISource(Source):
     """
     Source class for getting words from CLI arguments.
     """
+class SimpleSource(Source):
 
     words: List[str]
 
