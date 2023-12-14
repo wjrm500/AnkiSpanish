@@ -1,10 +1,14 @@
+import json
 from http import HTTPStatus
+from types import SimpleNamespace
 from typing import List
+from unittest.mock import AsyncMock
 
 import pytest
 from aioresponses import aioresponses
 from bs4 import BeautifulSoup
 
+from constant import Language, OpenAIModel
 from language_element import Definition, SentencePair, Translation
 from retriever import (
     CollinsSpanishWebsiteScraper,
@@ -12,6 +16,7 @@ from retriever import (
     Retriever,
     RetrieverFactory,
     SpanishDictWebsiteScraper,
+    WebsiteScraper,
 )
 
 
@@ -29,6 +34,17 @@ def mock_retriever(mock_url: str) -> Retriever:
             return []
 
     return TestRetriever()
+
+
+@pytest.fixture
+def mock_website_scraper(mock_url: str) -> WebsiteScraper:
+    class TestWebsiteScraper(WebsiteScraper):
+        base_url: str = mock_url
+
+        async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
+            return []
+
+    return TestWebsiteScraper()
 
 
 @pytest.mark.asyncio
@@ -67,18 +83,16 @@ def test_retriever_factory():
 
 
 @pytest.mark.asyncio
-async def test_get_soup() -> None:
-    mock_url = "https://example.com"
+async def test_get_soup(mock_url: str, mock_website_scraper: WebsiteScraper) -> None:
     mock_html = "<html><body>Mocked HTML</body></html>"
-    scraper = SpanishDictWebsiteScraper()
     try:
         with aioresponses() as m:
             m.get(mock_url, status=200, body=mock_html)
-            soup = await scraper._get_soup(mock_url)
+            soup = await mock_website_scraper._get_soup(mock_url)
             assert soup is not None
             assert soup.find("body").text == "Mocked HTML"
     finally:
-        await scraper.close_session()
+        await mock_website_scraper.close_session()
 
 
 @pytest.fixture
@@ -270,3 +284,61 @@ async def test_spanish_dict_website_scraper_quickdef(
             ]
     finally:
         await scraper.close_session()
+
+
+@pytest.mark.asyncio
+async def test_openai_api_retriever() -> None:
+    # Mock response from OpenAI API
+    mock_openai_response = SimpleNamespace(
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(
+                    content=json.dumps(
+                        {
+                            "translations": [
+                                {
+                                    "word_to_translate": "hola",
+                                    "part_of_speech": "interjection",
+                                    "definitions": [
+                                        {
+                                            "text": "hello",
+                                            "sentence_pairs": [
+                                                {
+                                                    "source_sentence": "Hola, ¿cómo estás?",
+                                                    "target_sentence": "Hello, how are you?",
+                                                }
+                                            ],
+                                        }
+                                    ],
+                                }
+                            ]
+                        }
+                    )
+                )
+            )
+        ]
+    )
+
+    mock_openai_client = AsyncMock()
+    mock_openai_client.chat.completions.create.return_value = mock_openai_response
+    retriever = OpenAIAPIRetriever()
+    retriever.client = mock_openai_client
+    retriever.language = Language.SPANISH
+    retriever.model = OpenAIModel.GPT_4_TURBO
+    translations = await retriever.retrieve_translations("hola")
+    expected_translation = Translation(
+        "hola",
+        "interjection",
+        [
+            Definition(
+                "hello",
+                [
+                    SentencePair(
+                        "Hola, ¿cómo estás?",
+                        "Hello, how are you?",
+                    )
+                ],
+            )
+        ],
+    )
+    assert translations == [expected_translation]

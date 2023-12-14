@@ -111,8 +111,9 @@ class APIRetriever(Retriever):
 
 
 class OpenAIAPIRetriever(APIRetriever):
-    language: Language | None
-    model: OpenAIModel | None
+    client: AsyncOpenAI
+    language: Language | None = None
+    model: OpenAIModel | None = None
 
     def __init__(self) -> None:
         super().__init__()
