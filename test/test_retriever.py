@@ -1,9 +1,48 @@
+from http import HTTPStatus
+from typing import List
+
 import pytest
 from aioresponses import aioresponses
 from bs4 import BeautifulSoup
 
 from language_element import Definition, SentencePair, Translation
-from retriever import SpanishDictWebsiteScraper
+from retriever import Retriever, SpanishDictWebsiteScraper
+
+
+@pytest.fixture
+def mock_url() -> str:
+    return "https://example.com"
+
+
+@pytest.fixture
+def mock_retriever(mock_url: str) -> Retriever:
+    class TestRetriever(Retriever):
+        base_url: str = mock_url
+
+        async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
+            return []
+    return TestRetriever()
+
+
+@pytest.mark.asyncio
+async def test_retriever_rate_limited(
+    mock_url: str, mock_retriever: Retriever
+) -> None:
+    mock_url = "https://example.com"
+    try:
+        with aioresponses() as m:
+            # Mock rate-limited response
+            m.get(mock_url, status=HTTPStatus.TOO_MANY_REQUESTS)
+            is_rate_limited = await mock_retriever.rate_limited()
+            assert is_rate_limited
+
+            # Mock non rate-limited response
+            m.clear()
+            m.get(mock_url, status=200)
+            is_rate_limited = await mock_retriever.rate_limited()
+            assert not is_rate_limited
+    finally:
+        await mock_retriever.close_session()
 
 
 @pytest.mark.asyncio
