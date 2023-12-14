@@ -1,5 +1,6 @@
 import pytest
 from aioresponses import aioresponses
+from bs4 import BeautifulSoup
 
 from language_element import Definition, SentencePair, Translation
 from retriever import SpanishDictWebsiteScraper
@@ -9,12 +10,15 @@ from retriever import SpanishDictWebsiteScraper
 async def test_get_soup() -> None:
     mock_url = "https://example.com"
     mock_html = "<html><body>Mocked HTML</body></html>"
-    with aioresponses() as m:
-        m.get(mock_url, status=200, body=mock_html)
-        scraper = SpanishDictWebsiteScraper()
-        soup = await scraper._get_soup(mock_url)
-        assert soup is not None
-        assert soup.find("body").text == "Mocked HTML"
+    scraper = SpanishDictWebsiteScraper()
+    try:
+        with aioresponses() as m:
+            m.get(mock_url, status=200, body=mock_html)
+            soup = await scraper._get_soup(mock_url)
+            assert soup is not None
+            assert soup.find("body").text == "Mocked HTML"
+    finally:
+        await scraper.close_session()
 
 
 @pytest.fixture
@@ -32,6 +36,12 @@ def spanish_dict_html() -> str:
     return """
     <html>
         <body>
+            <div id="quickdef1-es">
+                <a>test</a>
+            </div>
+            <div id="quickdef2-es">
+                <a>proof</a>
+            </div>
             <div id="dictionary-neodict-es">
                 <div class="W4_X2sG1">
                     <div class="VlFhSoPR L0ywlHB1 cNX9vGLU CDAsok0l VEBez1ed">
@@ -80,49 +90,123 @@ def spanish_dict_html() -> str:
 async def test_spanish_dict_website_scraper_no_quickdef(
     spanish_dict_word: str, spanish_dict_url: str, spanish_dict_html: str
 ) -> None:
-    with aioresponses() as m:
-        m.get(spanish_dict_url, status=200, body=spanish_dict_html)
+    try:
         scraper = SpanishDictWebsiteScraper()
         scraper.quickdef_mode = False
-        translations = await scraper.retrieve_translations(spanish_dict_word)
-        assert translations == [
-            Translation(
-                "prueba",
-                "feminine noun",
-                [
-                    Definition(
-                        "test",
-                        [
-                            SentencePair(
-                                "Hay una prueba de matemáticas el miércoles.",
-                                "There's a math test on Wednesday.",
-                            )
-                        ],
-                    ),
-                    Definition(
-                        "proof",
-                        [
-                            SentencePair(
-                                "La carta fue la prueba de que su historia era cierta.",
-                                "The letter was proof that her story was true.",
-                            )
-                        ],
-                    ),
-                ],
-            ),
-            Translation(
-                "prueba",
-                "plural noun",
-                [
-                    Definition(
-                        "evidence",
-                        [
-                            SentencePair(
-                                "El juez debe pesar todas las pruebas presentadas antes de dictar sentencia.",  # noqa: E501
-                                "The judge must weigh all of the evidence presented before sentencing.",  # noqa: E501
-                            )
-                        ],
-                    )
-                ],
-            ),
-        ]
+        with aioresponses() as m:
+            m.get(spanish_dict_url, status=200, body=spanish_dict_html)
+            translations = await scraper.retrieve_translations(spanish_dict_word)
+            assert translations == [
+                Translation(
+                    "prueba",
+                    "feminine noun",
+                    [
+                        Definition(
+                            "test",
+                            [
+                                SentencePair(
+                                    "Hay una prueba de matemáticas el miércoles.",
+                                    "There's a math test on Wednesday.",
+                                )
+                            ],
+                        ),
+                        Definition(
+                            "proof",
+                            [
+                                SentencePair(
+                                    "La carta fue la prueba de que su historia era cierta.",
+                                    "The letter was proof that her story was true.",
+                                )
+                            ],
+                        ),
+                    ],
+                ),
+                Translation(
+                    "prueba",
+                    "plural noun",
+                    [
+                        Definition(
+                            "evidence",
+                            [
+                                SentencePair(
+                                    "El juez debe pesar todas las pruebas presentadas antes de dictar sentencia.",  # noqa: E501
+                                    "The judge must weigh all of the evidence presented before sentencing.",  # noqa: E501
+                                )
+                            ],
+                        )
+                    ],
+                ),
+            ]
+    finally:
+        await scraper.close_session()
+
+
+@pytest.mark.asyncio
+async def test_spanish_dict_website_scraper_quickdef(
+    spanish_dict_word: str, spanish_dict_url: str, spanish_dict_html: str
+) -> None:
+    scraper = SpanishDictWebsiteScraper()
+    scraper.quickdef_mode = True  # Default is True but setting explicitly for clarity
+    try:
+        with aioresponses() as m:
+            m.get(spanish_dict_url, status=200, body=spanish_dict_html)
+            translations = await scraper.retrieve_translations(spanish_dict_word)
+            assert translations == [
+                Translation(
+                    "prueba",
+                    "feminine noun",
+                    [
+                        Definition(
+                            "test",
+                            [
+                                SentencePair(
+                                    "Hay una prueba de matemáticas el miércoles.",
+                                    "There's a math test on Wednesday.",
+                                )
+                            ],
+                        ),
+                        Definition(
+                            "proof",
+                            [
+                                SentencePair(
+                                    "La carta fue la prueba de que su historia era cierta.",
+                                    "The letter was proof that her story was true.",
+                                )
+                            ],
+                        ),
+                    ],
+                ),
+            ]
+
+            # Test that the translations do not include the second quickdef if it is removed from the HTML  # noqa: E501
+            def remove_div_quickdef2_es(html_content: str) -> str:
+                soup = BeautifulSoup(html_content, "html.parser")
+                div_to_remove = soup.find("div", id="quickdef2-es")
+                if div_to_remove:
+                    div_to_remove.decompose()
+                return str(soup)
+
+            spanish_dict_html = remove_div_quickdef2_es(spanish_dict_html)
+            m.clear()
+            m.get(spanish_dict_url, status=200, body=spanish_dict_html)
+            scraper._get_soup.cache_clear()
+            translations = await scraper.retrieve_translations(spanish_dict_word)
+            assert translations == [
+                Translation(
+                    "prueba",
+                    "feminine noun",
+                    [
+                        Definition(
+                            "test",
+                            [
+                                SentencePair(
+                                    "Hay una prueba de matemáticas el miércoles.",
+                                    "There's a math test on Wednesday.",
+                                )
+                            ],
+                        )
+                    ],
+                ),
+            ]
+    finally:
+        await scraper.close_session()

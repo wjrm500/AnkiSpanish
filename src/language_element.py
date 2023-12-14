@@ -26,6 +26,9 @@ class SentencePair:
             and self.target_sentence == other.target_sentence
         )
 
+    def __hash__(self) -> int:
+        return hash((self.source_sentence, self.target_sentence))
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(source_sentence={truncate_string(self.source_sentence)}, english_sentence={truncate_string(self.target_sentence)})"  # noqa: E501
 
@@ -73,6 +76,9 @@ class Definition:
             return NotImplemented
         return self.text == other.text and self.sentence_pairs == other.sentence_pairs
 
+    def __hash__(self) -> int:
+        return hash((self.text, tuple(self.sentence_pairs)))
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(text={self.text})"
 
@@ -119,6 +125,9 @@ class Translation:
             and self.part_of_speech == other.part_of_speech
             and self.definitions == other.definitions
         )
+
+    def __hash__(self) -> int:
+        return hash((self.word_to_translate, self.part_of_speech, tuple(self.definitions)))
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(word_to_translate={self.word_to_translate}, part_of_speech={self.part_of_speech})"  # noqa: E501
