@@ -6,7 +6,13 @@ from aioresponses import aioresponses
 from bs4 import BeautifulSoup
 
 from language_element import Definition, SentencePair, Translation
-from retriever import Retriever, SpanishDictWebsiteScraper
+from retriever import (
+    CollinsSpanishWebsiteScraper,
+    OpenAIAPIRetriever,
+    Retriever,
+    RetrieverFactory,
+    SpanishDictWebsiteScraper,
+)
 
 
 @pytest.fixture
@@ -21,13 +27,12 @@ def mock_retriever(mock_url: str) -> Retriever:
 
         async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
             return []
+
     return TestRetriever()
 
 
 @pytest.mark.asyncio
-async def test_rate_limited(
-    mock_url: str, mock_retriever: Retriever
-) -> None:
+async def test_rate_limited(mock_url: str, mock_retriever: Retriever) -> None:
     mock_url = "https://example.com"
     try:
         with aioresponses() as m:
@@ -45,11 +50,20 @@ async def test_rate_limited(
         await mock_retriever.close_session()
 
 
-@pytest.mark.asyncio
 def test_standardize(mock_retriever: Retriever) -> None:
     assert mock_retriever._standardize("remove: punctuation!") == "remove punctuation"
     assert mock_retriever._standardize("  remove whitespace  ") == "remove whitespace"
     assert mock_retriever._standardize("Remove Capitalisation") == "remove capitalisation"
+
+
+def test_retriever_factory():
+    assert isinstance(RetrieverFactory.create_retriever("openai"), OpenAIAPIRetriever)
+    assert isinstance(
+        RetrieverFactory.create_retriever("collinsspanish"), CollinsSpanishWebsiteScraper
+    )
+    assert isinstance(RetrieverFactory.create_retriever("spanishdict"), SpanishDictWebsiteScraper)
+    with pytest.raises(ValueError):
+        RetrieverFactory.create_retriever("unknown")
 
 
 @pytest.mark.asyncio

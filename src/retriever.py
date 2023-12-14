@@ -111,8 +111,8 @@ class APIRetriever(Retriever):
 
 
 class OpenAIAPIRetriever(APIRetriever):
-    language: Language
-    model: OpenAIModel
+    language: Language | None
+    model: OpenAIModel | None
 
     def __init__(self) -> None:
         super().__init__()
@@ -120,7 +120,10 @@ class OpenAIAPIRetriever(APIRetriever):
         self.api_key = os.getenv("OPENAI_API_KEY")
         self.client = AsyncOpenAI(api_key=self.api_key)
 
-        # Get language and model from user - done via command line for now to keep things simple
+    def set_language(self) -> None:
+        """
+        Get language from user - done via command line for now to keep things simple
+        """
         while True:
             try:
                 self.language = Language(
@@ -131,6 +134,11 @@ class OpenAIAPIRetriever(APIRetriever):
                 break
             except ValueError:
                 print("Invalid language, please try again.")
+
+    def set_model(self) -> None:
+        """
+        Get model from user - done via command line for now to keep things simple
+        """
         while True:
             try:
                 self.model = OpenAIModel(
@@ -143,6 +151,12 @@ class OpenAIAPIRetriever(APIRetriever):
                 print("Invalid model, please try again.")
 
     async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
+        if not self.language:
+            self.set_language()
+        if not self.model:
+            self.set_model()
+        assert self.language
+        assert self.model
         response = await self.client.chat.completions.create(
             model=self.model.value,
             messages=[
