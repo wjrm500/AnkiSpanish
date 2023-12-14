@@ -4,7 +4,6 @@ import random
 from typing import List
 
 from genanki import Deck as AnkiDeck
-from genanki import Model as AnkiModel
 from genanki import Note as AnkiNote
 from genanki import Package as AnkiPackage
 
@@ -15,33 +14,14 @@ from note_creator import NoteCreator
 from retriever import Retriever, RetrieverFactory
 from source import AnkiPackageSource, CSVSource, SimpleSource, Source
 
-deck = AnkiDeck(2059400110, "Programmatically generated language learning flashcards")
-model = AnkiModel(
-    1098765432,
-    "Language learning flashcard model",
-    fields=[
-        {"name": "word"},
-        {"name": "part_of_speech"},
-        {"name": "definition"},
-        {"name": "source_sentences"},
-        {"name": "target_sentences"},
-    ],
-    templates=[
-        {
-            "name": "Card 1",
-            "qfmt": "<div style='text-align:center;'><span style='color:orange; font-size:20px; font-weight:bold'><a href='https://www.spanishdict.com/translate/{{word}}?langFrom=es' style='color: orange;'>{{word}}</a></span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",  # noqa: E501
-            "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",  # noqa: E501
-        }
-    ],
-)
-
 
 async def main(
     words_to_translate: List[str],
     retriever: Retriever,
     concurrency_limit: int = 1,
     note_limit: int = 0,
-    output_to: str = "output.apkg",
+    output_anki_package_path: str = "output.apkg",
+    output_anki_deck_name: str = "Language learning flashcards",
 ) -> None:
     """
     Creates a new Anki deck containing language learning flashcards with translations and example
@@ -51,7 +31,8 @@ async def main(
         logger.warning("No words to translate, exiting")
         return
     dictionary = Dictionary(retriever)
-    note_creator = NoteCreator(model, dictionary, concurrency_limit)
+    deck_id = random.randint(1_000_000_000, 5_000_000_000)
+    note_creator = NoteCreator(deck_id, dictionary, concurrency_limit)
     logger.info(f"Processing {len(words_to_translate)} words")
     tasks: List[asyncio.Task[List[AnkiNote]]] = []
     for word_to_translate in words_to_translate:
@@ -71,7 +52,7 @@ async def main(
             all_new_notes.extend(new_notes)
             notes_to_create += len(new_notes)
             logger.debug(
-                f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.RESET} - Prepared {PC.GREEN}{len(new_notes)}{PC.RESET} notes for word {PC.CYAN}{new_notes[0].fields[0]:{max_word_length}}{PC.RESET} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.RESET}"  # noqa: E501
+                f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.RESET} - Prepared {PC.GREEN}{len(new_notes)}{PC.RESET} notes for word {PC.CYAN}{new_notes[0].fields[1]:{max_word_length}}{PC.RESET} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.RESET}"  # noqa: E501
             )
             if note_limit and notes_to_create >= note_limit:
                 logger.info(f"Note limit of {note_limit} reached - stopping processing")
@@ -87,12 +68,17 @@ async def main(
 
     logger.info(f"Shuffling {len(all_new_notes)} notes")
     random.shuffle(all_new_notes)
+
+    logger.info(
+        f"Creating Anki deck '{output_anki_deck_name}' (ID {deck_id}) with {len(all_new_notes)} notes"  # noqa: E501
+    )
+    deck = AnkiDeck(deck_id, output_anki_deck_name)  # 2059400110
     for new_note in all_new_notes:
         deck.add_note(note=new_note)
         logger.debug(
-            f"Created note for translation {PC.CYAN}{new_note.fields[0]} ({new_note.fields[1]}){PC.RESET}"  # noqa: E501
+            f"Created note for translation {PC.CYAN}{new_note.fields[1]} ({new_note.fields[2]}){PC.RESET}"  # noqa: E501
         )
-    AnkiPackage(deck).write_to_file(output_to)
+    AnkiPackage(deck).write_to_file(output_anki_package_path)
     logger.info(f"Processing complete. Total web requests made: {retriever.requests_made}")
 
 
@@ -103,12 +89,12 @@ if __name__ == "__main__":
 
     # Source arguments
     parser.add_argument("--words", nargs="+", default=[], help="Words to translate")
-    parser.add_argument("--anki-package-path", type=str, default="", help="Path to .apkg")
+    parser.add_argument("--input-anki-package-path", type=str, default="", help="Path to .apkg")
     parser.add_argument(
-        "--anki-deck-name", type=str, default="", help="Name of deck inside package"
+        "--input-anki-deck-name", type=str, default="", help="Name of deck inside package"
     )
     parser.add_argument(
-        "--anki-field-name", type=str, default="Word", help="Name of field inside note"
+        "--input-anki-field-name", type=str, default="Word", help="Name of field inside note"
     )
     parser.add_argument("--csv", type=str, default="", help="Path to .csv")
 
@@ -135,18 +121,29 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     # Output argument
-    parser.add_argument("--output-to", type=str, default="output.apkg", help="Path to output file")
+    parser.add_argument(
+        "--output-anki-package-path",
+        type=str,
+        default="output.apkg",
+        help="Path to output Anki package (.apkg) file",
+    )
+    parser.add_argument(
+        "--output-anki-deck-name",
+        type=str,
+        default="Language learning flashcards",
+        help="Name of deck inside output Anki package (.apkg) file",
+    )
 
     args = parser.parse_args()
 
     source: Source
     if args.words:
         source = SimpleSource(args.words)
-    elif args.anki_package_path:
+    elif args.input_anki_package_path:
         source = AnkiPackageSource(
-            package_path=args.anki_package_path,
-            deck_name=args.anki_deck_name,
-            field_name=args.anki_field_name,
+            package_path=args.input_anki_package_path,
+            deck_name=args.input_anki_deck_name,
+            field_name=args.input_anki_field_name,
         )
     elif args.csv:
         source = CSVSource(args.csv)
@@ -160,4 +157,13 @@ if __name__ == "__main__":
     if args.verbose:
         logger.setLevel(DEBUG)
 
-    asyncio.run(main(words, retriever, args.concurrency_limit, args.note_limit, args.output_to))
+    asyncio.run(
+        main(
+            words,
+            retriever,
+            args.concurrency_limit,
+            args.note_limit,
+            args.output_anki_package_path,
+            args.output_anki_deck_name,
+        )
+    )

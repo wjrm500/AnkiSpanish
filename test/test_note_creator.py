@@ -3,8 +3,6 @@ from typing import List
 from unittest.mock import AsyncMock
 
 import pytest
-from genanki import Model as AnkiModel
-from genanki import Note as AnkiNote
 
 from exception import RateLimitException
 from language_element import Definition, SentencePair, Translation
@@ -12,24 +10,31 @@ from note_creator import NoteCreator
 
 
 @pytest.fixture
+def deck_id() -> int:
+    return 1_000_000_000
+
+
+@pytest.fixture
 def field_keys() -> List[str]:
-    return ["word", "part_of_speech", "definition", "source_sentences", "target_sentences"]
+    return [
+        "deck_id",
+        "word",
+        "part_of_speech",
+        "definition",
+        "source_sentences",
+        "target_sentences",
+    ]
 
 
 @pytest.fixture
-def field_values() -> List[str]:
-    return ["test", "noun", "test definition", "Source sentence", "Target sentence"]
+def field_values(deck_id: int) -> List[str]:
+    return [str(deck_id), "test", "noun", "test definition", "Source sentence", "Target sentence"]
 
 
 @pytest.fixture
-def model(field_keys: List[str]) -> AnkiModel:
-    return AnkiModel(1, "test", fields=[{"name": field_key} for field_key in field_keys])
-
-
-@pytest.fixture
-def note_creator(model: AnkiModel) -> NoteCreator:
+def note_creator(deck_id: int) -> NoteCreator:
     dictionary = AsyncMock()
-    return NoteCreator(model, dictionary, concurrency_limit=1)
+    return NoteCreator(deck_id, dictionary, concurrency_limit=1)
 
 
 @pytest.fixture
@@ -39,11 +44,6 @@ def translation() -> Translation:
         "noun",
         [Definition("test definition", [SentencePair("Source sentence", "Target sentence")])],
     )
-
-
-@pytest.fixture
-def note(model: AnkiModel, field_values: List[str]) -> AnkiNote:
-    return AnkiNote(model=model, fields=field_values)
 
 
 def test_combine_sentences_single_sentence(note_creator: NoteCreator) -> None:
@@ -62,13 +62,6 @@ def test_combine_sentences_multiple_sentences(note_creator: NoteCreator) -> None
 def test_create_note_from_translation(
     field_values: List[str], note_creator: NoteCreator, translation: Translation
 ) -> None:
-    note_creator.model.fields = [
-        "word",
-        "part_of_speech",
-        "definition",
-        "source_sentences",
-        "target_sentences",
-    ]
     note = note_creator._create_note_from_translation(translation)
     assert note.fields == field_values
 
@@ -85,36 +78,24 @@ async def test_create_notes(
 
 @pytest.mark.asyncio
 async def test_rate_limited_create_notes(
-    note_creator: NoteCreator, translation: Translation
+    field_values: List[str], note_creator: NoteCreator, translation: Translation
 ) -> None:
     note_creator.dictionary.translate.return_value = [translation]
     notes = await note_creator.rate_limited_create_notes("test")
     assert len(notes) == 1
-    assert notes[0].fields == [
-        "test",
-        "noun",
-        "test definition",
-        "Source sentence",
-        "Target sentence",
-    ]
+    assert notes[0].fields == field_values
 
 
 @pytest.mark.asyncio
 async def test_rate_limited_create_notes_with_rate_limit_exception(
-    note_creator: NoteCreator, translation: Translation
+    field_values: List[str], note_creator: NoteCreator, translation: Translation
 ) -> None:
     asyncio.sleep = AsyncMock()
     note_creator.dictionary.retriever.rate_limited = AsyncMock(return_value=False)
     note_creator.dictionary.translate = AsyncMock(side_effect=[RateLimitException, [translation]])
     notes = await note_creator.rate_limited_create_notes("test")
     assert len(notes) == 1
-    assert notes[0].fields == [
-        "test",
-        "noun",
-        "test definition",
-        "Source sentence",
-        "Target sentence",
-    ]
+    assert notes[0].fields == field_values
     assert asyncio.sleep.call_count == 1
     assert note_creator.dictionary.retriever.rate_limited.call_count == 1
     assert note_creator.dictionary.translate.call_count == 2

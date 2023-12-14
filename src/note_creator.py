@@ -9,6 +9,26 @@ from exception import RateLimitException
 from language_element import Translation
 from log import logger
 
+model = AnkiModel(
+    1098765432,
+    "Language learning flashcard model",
+    fields=[
+        {"name": "deck_id"},
+        {"name": "word"},
+        {"name": "part_of_speech"},
+        {"name": "definition"},
+        {"name": "source_sentences"},
+        {"name": "target_sentences"},
+    ],
+    templates=[
+        {
+            "name": "Card 1",
+            "qfmt": "<div style='text-align:center;'><span style='color:orange; font-size:20px; font-weight:bold'><a href='https://www.spanishdict.com/translate/{{word}}?langFrom=es' style='color: orange;'>{{word}}</a></span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",  # noqa: E501
+            "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",  # noqa: E501
+        }
+    ],
+)
+
 
 class NoteCreator:
     """
@@ -18,10 +38,14 @@ class NoteCreator:
     object.
     """
 
-    def __init__(
-        self, model: AnkiModel, dictionary: Dictionary, concurrency_limit: int = 1
-    ) -> None:
-        self.model = model
+    deck_id: int
+    dictionary: Dictionary
+    rate_limit_event: asyncio.Event
+    rate_limit_handling_event: asyncio.Event
+    semaphore: asyncio.Semaphore
+
+    def __init__(self, deck_id: int, dictionary: Dictionary, concurrency_limit: int = 1) -> None:
+        self.deck_id = deck_id
         self.dictionary = dictionary
         self.rate_limit_event = asyncio.Event()
         self.rate_limit_event.set()  # Setting the event allows all coroutines to proceed
@@ -51,6 +75,9 @@ class NoteCreator:
             target_sentences.append(definition.sentence_pairs[0].target_sentence)
 
         field_dict = {
+            "deck_id": str(
+                self.deck_id
+            ),  # Makes note unique to help Anki avoid updating existing notes on import  # noqa: E501
             "word": translation.word_to_translate,
             "part_of_speech": translation.part_of_speech,
             "definition": ", ".join([d.text for d in translation.definitions]),
@@ -58,7 +85,7 @@ class NoteCreator:
             "target_sentences": self._combine_sentences(target_sentences),
         }
         return AnkiNote(
-            model=self.model,
+            model=model,
             fields=list(field_dict.values()),
         )
 
