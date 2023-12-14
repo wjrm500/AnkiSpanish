@@ -4,5 +4,4 @@ venv-dev/
 __pycache__/
 source_code.txt
 todos.txt
-*.apkg
 .env

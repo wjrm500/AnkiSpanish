@@ -35,10 +35,12 @@ class AnkiPackageSource(Source):
     """Source class for getting words from an Anki package."""
 
     package_path: str
-    deck_name: str
+    deck_name: str | None
     field_name: str
 
-    def __init__(self, package_path: str, deck_name: str, field_name: str = "Word") -> None:
+    def __init__(
+        self, package_path: str, deck_name: str | None = None, field_name: str = "Word"
+    ) -> None:
         if not os.path.exists(package_path):
             raise FileNotFoundError(f"Package not found at {package_path}")
         self.package_path = package_path
@@ -57,7 +59,7 @@ class AnkiPackageSource(Source):
         if not deck:
             raise ValueError(f"Deck '{self.deck_name}' not found in package")
         if len(deck.notes) == 0:
-            raise ValueError(f"Deck '{self.deck_name}' has no notes")
+            raise ValueError(f"Deck '{deck.name}' has no notes")
         signal_note: AnkiNote = deck.notes[0]
         model: AnkiModel = signal_note.model
         desired_field = next(

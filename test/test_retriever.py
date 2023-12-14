@@ -288,7 +288,6 @@ async def test_spanish_dict_website_scraper_quickdef(
 
 @pytest.mark.asyncio
 async def test_openai_api_retriever() -> None:
-    # Mock response from OpenAI API
     mock_openai_response = SimpleNamespace(
         choices=[
             SimpleNamespace(
