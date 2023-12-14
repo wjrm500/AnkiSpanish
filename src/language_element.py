@@ -18,6 +18,14 @@ class SentencePair:
     source_sentence: str
     target_sentence: str
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SentencePair):
+            return NotImplemented
+        return (
+            self.source_sentence == other.source_sentence
+            and self.target_sentence == other.target_sentence
+        )
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(source_sentence={truncate_string(self.source_sentence)}, english_sentence={truncate_string(self.target_sentence)})"  # noqa: E501
 
@@ -60,6 +68,11 @@ class Definition:
     text: str
     sentence_pairs: List[SentencePair]
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Definition):
+            return NotImplemented
+        return self.text == other.text and self.sentence_pairs == other.sentence_pairs
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(text={self.text})"
 
@@ -97,6 +110,15 @@ class Translation:
     word_to_translate: str
     part_of_speech: str
     definitions: List[Definition]
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Translation):
+            return NotImplemented
+        return (
+            self.word_to_translate == other.word_to_translate
+            and self.part_of_speech == other.part_of_speech
+            and self.definitions == other.definitions
+        )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(word_to_translate={self.word_to_translate}, part_of_speech={self.part_of_speech})"  # noqa: E501
