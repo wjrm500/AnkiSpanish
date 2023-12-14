@@ -182,7 +182,8 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
     by searching the online dictionary for the Spanish word.
     """
 
-    base_url = "https://www.spanishdict.com"
+    base_url: str = "https://www.spanishdict.com"
+    quickdef_mode: bool = True
 
     def _get_translation_from_part_of_speech_div(
         self, spanish_word: str, part_of_speech_div: Tag
@@ -256,6 +257,22 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
             )
             if translation:
                 all_translations.append(translation)
+        if self.quickdef_mode:
+            quickdef_divs: list[Tag] = soup.find_all(
+                id=lambda x: x and x.startswith("quickdef") and x.endswith("es")
+            )
+            quickdefs = [(a.text if (a := d.find("a")) else d.text) for d in quickdef_divs]
+            quickdef_translations: set[Translation] = set()
+            for quickdef in quickdefs:
+                for translation in all_translations:
+                    if quickdef in (d.text for d in translation.definitions):
+                        quickdef_translations.add(translation)
+                        break
+            for quickdef_translation in quickdef_translations:
+                quickdef_translation.definitions = [
+                    d for d in quickdef_translation.definitions if d.text in quickdefs
+                ]
+            all_translations = list(quickdef_translations)
         return all_translations
 
 

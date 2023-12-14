@@ -112,9 +112,14 @@ if __name__ == "__main__":
     )
     parser.add_argument("--csv", type=str, default="", help="Path to .csv")
 
-    # Retriever argument
+    # Retriever arguments
     parser.add_argument(
         "--retriever-type", type=str, default="spanishdict", help="Retriever type to use"
+    )
+    parser.add_argument(
+        "--no-quickdef",
+        action="store_true",
+        help="If using SpanishDict, don't use quickdef mode. Quickdef mode basically just uses the definitions defined at the top of the Dictionary pane and filters out any translations or definitions that don't correspond to these definitions, simplifying the deck.",  # noqa: E501
     )
 
     # Minor arguments
