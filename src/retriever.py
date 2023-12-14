@@ -72,10 +72,10 @@ class Retriever(abc.ABC):
 class RetrieverFactory:
     @staticmethod
     def create_retriever(retriever_type: str) -> Retriever:
-        if retriever_type == "openai":
-            return OpenAIAPIRetriever()
-        elif retriever_type == "collinsspanish":
+        if retriever_type == "collinsspanish":
             return CollinsSpanishWebsiteScraper()
+        elif retriever_type == "openai":
+            return OpenAIAPIRetriever()
         elif retriever_type == "spanishdict":
             return SpanishDictWebsiteScraper()
         else:
@@ -198,7 +198,7 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
     """
 
     base_url: str = "https://www.spanishdict.com"
-    quickdef_mode: bool = True
+    quickdef_mode: bool = False
 
     def _get_translation_from_part_of_speech_div(
         self, spanish_word: str, part_of_speech_div: Tag

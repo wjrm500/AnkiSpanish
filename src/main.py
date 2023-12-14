@@ -11,7 +11,7 @@ from constant import PrintColour as PC
 from dictionary import Dictionary
 from log import DEBUG, logger
 from note_creator import NoteCreator
-from retriever import Retriever, RetrieverFactory
+from retriever import Retriever, RetrieverFactory, SpanishDictWebsiteScraper
 from source import AnkiPackageSource, CSVSource, SimpleSource, Source
 
 
@@ -66,7 +66,7 @@ async def main(
             await asyncio.gather(*remaining_tasks, return_exceptions=True)
         await retriever.close_session()
 
-    logger.info(f"Shuffling {len(all_new_notes)} notes")
+    logger.debug(f"Shuffling {len(all_new_notes)} notes")
     random.shuffle(all_new_notes)
 
     logger.info(
@@ -98,9 +98,19 @@ if __name__ == "__main__":
     )
     parser.add_argument("--csv", type=str, default="", help="Path to .csv")
 
-    # Retriever argument
+    # Retriever arguments
     parser.add_argument(
-        "--retriever-type", type=str, default="spanishdict", help="Retriever type to use"
+        "--retriever-type", type=str, required=True, help="Retriever type to use. Options are 'collinsspanish', 'openai' and 'spanishdict'"  # noqa: E501
+    )
+    parser.add_argument(
+        "--quickdef",
+        action="store_true",
+        help="If using SpanishDict, use quickdef mode. Quickdef mode basically just uses the definitions defined at the top of the Dictionary pane and filters out any translations or definitions that don't correspond to these definitions, simplifying the deck.",  # noqa: E501
+    )
+    parser.add_argument(
+        "--no-quickdef",
+        action="store_true",
+        help="If using SpanishDict, don't use quickdef mode. Quickdef mode basically just uses the definitions defined at the top of the Dictionary pane and filters out any translations or definitions that don't correspond to these definitions, simplifying the deck.",  # noqa: E501
     )
 
     # Minor arguments
@@ -148,6 +158,8 @@ if __name__ == "__main__":
     words = source.get_words_to_translate()
 
     retriever = RetrieverFactory.create_retriever(args.retriever_type)
+    if args.quickdef:
+        SpanishDictWebsiteScraper.quickdef_mode = True 
 
     if args.verbose:
         logger.setLevel(DEBUG)
