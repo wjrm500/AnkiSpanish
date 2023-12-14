@@ -25,7 +25,7 @@ def mock_retriever(mock_url: str) -> Retriever:
 
 
 @pytest.mark.asyncio
-async def test_retriever_rate_limited(
+async def test_rate_limited(
     mock_url: str, mock_retriever: Retriever
 ) -> None:
     mock_url = "https://example.com"
@@ -43,6 +43,13 @@ async def test_retriever_rate_limited(
             assert not is_rate_limited
     finally:
         await mock_retriever.close_session()
+
+
+@pytest.mark.asyncio
+def test_standardize(mock_retriever: Retriever) -> None:
+    assert mock_retriever._standardize("remove: punctuation!") == "remove punctuation"
+    assert mock_retriever._standardize("  remove whitespace  ") == "remove whitespace"
+    assert mock_retriever._standardize("Remove Capitalisation") == "remove capitalisation"
 
 
 @pytest.mark.asyncio
