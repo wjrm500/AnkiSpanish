@@ -16,6 +16,10 @@ class PrintColour(enum.Enum):
 
 class Language(enum.Enum):
     ENGLISH = "english"
+    FRENCH = "french"
+    GERMAN = "german"
+    ITALIAN = "italian"
+    PORTUGUESE = "portuguese"
     SPANISH = "spanish"
 
     @staticmethod

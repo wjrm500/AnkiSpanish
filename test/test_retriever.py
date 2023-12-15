@@ -1,4 +1,5 @@
 import json
+import os
 from http import HTTPStatus
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -10,13 +11,16 @@ from bs4 import BeautifulSoup
 from constant import Language, OpenAIModel
 from language_element import Definition, SentencePair, Translation
 from retriever import (
-    CollinsSpanishWebsiteScraper,
+    CollinsWebsiteScraper,
     OpenAIAPIRetriever,
     Retriever,
     RetrieverFactory,
     SpanishDictWebsiteScraper,
     WebsiteScraper,
 )
+
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+TEST_HTML_DIR = SCRIPT_DIR + "/data/html/"
 
 
 @pytest.fixture
@@ -83,9 +87,9 @@ def test_retriever_factory():
     )
     assert isinstance(openai_retriever, OpenAIAPIRetriever)
     collins_retriever = RetrieverFactory.create_retriever(
-        "collinsspanish", language_from=Language.SPANISH, language_to=Language.ENGLISH
+        "collins", language_from=Language.SPANISH, language_to=Language.ENGLISH
     )
-    assert isinstance(collins_retriever, CollinsSpanishWebsiteScraper)
+    assert isinstance(collins_retriever, CollinsWebsiteScraper)
     spanishdict_retriever = RetrieverFactory.create_retriever(
         "spanishdict", language_from=Language.SPANISH, language_to=Language.ENGLISH
     )
@@ -110,13 +114,13 @@ async def test_get_soup(mock_url: str, mock_website_scraper: WebsiteScraper) -> 
 
 
 @pytest.fixture
-def spanish_dict_word() -> str:
+def test_word() -> str:
     return "prueba"
 
 
 @pytest.fixture
-def spanish_dict_url(spanish_dict_word: str) -> str:
-    return f"https://www.spanishdict.com/translate/{spanish_dict_word}?langFrom=es"
+def spanish_dict_url(test_word: str) -> str:
+    return f"https://www.spanishdict.com/translate/{test_word}?langFrom=es"
 
 
 @pytest.fixture
@@ -176,7 +180,7 @@ def spanish_dict_html() -> str:
 
 @pytest.mark.asyncio
 async def test_spanish_dict_website_scraper_no_concise_mode(
-    spanish_dict_word: str, spanish_dict_url: str, spanish_dict_html: str
+    test_word: str, spanish_dict_url: str, spanish_dict_html: str
 ) -> None:
     try:
         retriever = SpanishDictWebsiteScraper(
@@ -185,7 +189,7 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
         retriever.concise_mode = False  # Default is False but setting explicitly for clarity
         with aioresponses() as m:
             m.get(spanish_dict_url, status=200, body=spanish_dict_html)
-            translations = await retriever.retrieve_translations(spanish_dict_word)
+            translations = await retriever.retrieve_translations(test_word)
             assert translations == [
                 Translation(
                     retriever,
@@ -235,7 +239,7 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
 
 @pytest.mark.asyncio
 async def test_spanish_dict_website_scraper_concise_mode(
-    spanish_dict_word: str, spanish_dict_url: str, spanish_dict_html: str
+    test_word: str, spanish_dict_url: str, spanish_dict_html: str
 ) -> None:
     retriever = SpanishDictWebsiteScraper(
         language_from=Language.SPANISH, language_to=Language.ENGLISH
@@ -244,7 +248,7 @@ async def test_spanish_dict_website_scraper_concise_mode(
     try:
         with aioresponses() as m:
             m.get(spanish_dict_url, status=200, body=spanish_dict_html)
-            translations = await retriever.retrieve_translations(spanish_dict_word)
+            translations = await retriever.retrieve_translations(test_word)
             assert translations == [
                 Translation(
                     retriever,
@@ -285,7 +289,7 @@ async def test_spanish_dict_website_scraper_concise_mode(
             m.clear()
             m.get(spanish_dict_url, status=200, body=spanish_dict_html)
             retriever._get_soup.cache_clear()
-            translations = await retriever.retrieve_translations(spanish_dict_word)
+            translations = await retriever.retrieve_translations(test_word)
             assert translations == [
                 Translation(
                     retriever,

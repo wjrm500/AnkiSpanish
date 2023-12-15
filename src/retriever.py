@@ -15,7 +15,6 @@ from bs4 import BeautifulSoup
 from bs4.element import Tag
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
-from requests_html import AsyncHTMLSession, HTMLResponse
 
 from constant import OPEN_AI_SYSTEM_PROMPT, Language, OpenAIModel
 from exception import RateLimitException
@@ -96,7 +95,7 @@ class RetrieverFactory:
         retriever_type: str, language_from: Language, language_to: Language
     ) -> Retriever:
         retrievers: list[type[Retriever]] = [
-            CollinsSpanishWebsiteScraper,
+            CollinsWebsiteScraper,
             OpenAIAPIRetriever,
             SpanishDictWebsiteScraper,
         ]
@@ -339,13 +338,21 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
         return all_translations
 
 
-class CollinsSpanishWebsiteScraper(WebsiteScraper):
+class CollinsWebsiteScraper(WebsiteScraper):
     available_language_pairs: list[tuple[Language, Language]] = [
+        (Language.ENGLISH, Language.FRENCH),
+        (Language.ENGLISH, Language.GERMAN),
+        (Language.ENGLISH, Language.ITALIAN),
+        (Language.ENGLISH, Language.PORTUGUESE),
         (Language.ENGLISH, Language.SPANISH),
+        (Language.FRENCH, Language.ENGLISH),
+        (Language.GERMAN, Language.ENGLISH),
+        (Language.ITALIAN, Language.ENGLISH),
+        (Language.PORTUGUESE, Language.ENGLISH),
         (Language.SPANISH, Language.ENGLISH),
     ]
     base_url = "https://www.collinsdictionary.com/dictionary"
-    lookup_key = "collinsspanish"
+    lookup_key = "collins"
 
     def link(self, word_to_translate: str) -> str | None:
         return f"{self.base_url}/{self.language_from.value}-{self.language_to.value}/{self._standardize(word_to_translate)}"  # noqa: E501
@@ -380,21 +387,11 @@ class CollinsSpanishWebsiteScraper(WebsiteScraper):
         return Translation(self, word_to_translate, part_of_speech, definitions)
 
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
-        url = self.link(word_to_translate)
-        session = AsyncHTMLSession()
-        try:
-            logging.disable(logging.CRITICAL)
-            response: HTMLResponse = await session.get(url)
-            await response.html.arender()  # Render the page including JavaScript
-            soup = BeautifulSoup(response.html.html, "html.parser")
-            if soup.text.find("Enable JavaScript and cookies to continue") != -1:
-                raise ValueError(
-                    "Collins online Spanish dictionary remains scrape-resistant even with JavaScript rendering, owing to Cloudflare's anti-bot protection"  # noqa: E501
-                )
-        finally:
-            await session.close()
-            logging.disable(logging.NOTSET)
-
+        soup = await self._get_soup(self.link(word_to_translate))
+        if soup.text.find("Enable JavaScript and cookies to continue") != -1:
+            raise ValueError(
+                "Collins online Spanish dictionary remains scrape-resistant, owing to Cloudflare's anti-bot protection"  # noqa: E501
+            )
         part_of_speech_divs = soup.find_all("div", class_="hom")
         all_translations: list[Translation] = []
         for part_of_speech_div in part_of_speech_divs:

@@ -121,7 +121,7 @@ if __name__ == "__main__":
         "--retriever-type",
         type=str,
         required=True,
-        help="Retriever type to use. Options are 'collinsspanish', 'openai' and 'spanishdict'",
+        help="Retriever type to use. Options are 'collins', 'openai' and 'spanishdict'",
     )
     parser.add_argument(
         "--concise-mode",
