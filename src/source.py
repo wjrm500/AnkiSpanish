@@ -11,6 +11,16 @@ from genanki_extension import load_decks_from_package
 class Source(abc.ABC):
     """An abstract base class that represents a source of words to be translated."""
 
+    def _deduplicate(self, words_to_translate: list[str]) -> list[str]:
+        """Removes duplicates from a list of words."""
+        seen = set()
+        unique_words: list[str] = []
+        for word in words_to_translate:
+            if word not in seen:
+                seen.add(word)
+                unique_words.append(word)
+        return unique_words
+
     @abc.abstractmethod
     def get_words_to_translate(self) -> list[str]:
         """Abstract method to get a list of words from the source."""
@@ -20,14 +30,14 @@ class Source(abc.ABC):
 class SimpleSource(Source):
     """Source class for getting words from a simple list"""
 
-    words: list[str]
+    words_to_translate: list[str]
 
-    def __init__(self, words: list[str]) -> None:
-        self.words = words
+    def __init__(self, words_to_translate: list[str]) -> None:
+        self.words_to_translate = words_to_translate
 
     def get_words_to_translate(self) -> list[str]:
         """Simply returns a de-duplicated list of the words provided to the constructor."""
-        return list(set(self.words))
+        return self._deduplicate(self.words_to_translate)
 
 
 class AnkiPackageSource(Source):
@@ -71,7 +81,7 @@ class AnkiPackageSource(Source):
         for note in deck.notes:
             assert isinstance(note, AnkiNote)
             words_to_translate.append(note.fields[field_index])
-        return list(set(words_to_translate))
+        return self._deduplicate(words_to_translate)
 
 
 class CSVSource(Source):
@@ -94,4 +104,4 @@ class CSVSource(Source):
             reader = csv.reader(csv_file)
             for row in reader:
                 words.append(row[self.col_num])
-        return list(set(words))
+        return self._deduplicate(words_to_translate)
