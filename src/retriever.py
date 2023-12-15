@@ -2,6 +2,7 @@ import abc
 import argparse
 import asyncio
 import json
+import logging
 import os
 import re
 import urllib.parse
@@ -14,6 +15,7 @@ from bs4 import BeautifulSoup
 from bs4.element import Tag
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
+from requests_html import AsyncHTMLSession, HTMLResponse
 
 from constant import OPEN_AI_SYSTEM_PROMPT, Language, OpenAIModel
 from exception import RateLimitException
@@ -231,17 +233,17 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
         (Language.SPANISH, Language.ENGLISH),
     ]
     base_url: str = "https://www.spanishdict.com"
-    lang_from_mapping = {
+    lang_shortener = {
         Language.ENGLISH: "en",
         Language.SPANISH: "es",
     }
     lookup_key = "spanishdict"
 
     def link(self, word_to_translate: str) -> str | None:
-        return f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={self.lang_from_mapping[self.language_from]}"  # noqa: E501
+        return f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={self.lang_shortener[self.language_from]}"  # noqa: E501
 
     def reverse_link(self, definition: str) -> str | None:
-        return f"{self.base_url}/translate/{self._standardize(definition)}?langFrom={self.lang_from_mapping[self.language_to]}"  # noqa: E501
+        return f"{self.base_url}/translate/{self._standardize(definition)}?langFrom={self.lang_shortener[self.language_to]}"  # noqa: E501
 
     def _get_translation_from_part_of_speech_div(
         self, word_to_translate: str, part_of_speech_div: Tag
@@ -271,10 +273,10 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
                 marker_tag_parent = marker_tag.parent
                 marker_tag_grandparent = marker_tag_parent.parent  # type: ignore[union-attr]
                 source_sentence_span = marker_tag_grandparent.find(  # type: ignore[union-attr]
-                    "span", {"lang": self.lang_from_mapping[self.language_from]}
+                    "span", {"lang": self.lang_shortener[self.language_from]}
                 )
                 target_sentence_span = marker_tag_grandparent.find(  # type: ignore[union-attr]
-                    "span", {"lang": self.lang_from_mapping[self.language_to]}
+                    "span", {"lang": self.lang_shortener[self.language_to]}
                 )
                 if not source_sentence_span or not target_sentence_span:
                     continue
@@ -286,15 +288,9 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
                 continue
             definition = Definition(text, sentence_pairs)
             definitions.append(definition)
-        seen = set()
-        unique_definitions = []
-        for definition in definitions:
-            if definition.text not in seen:
-                seen.add(definition.text)
-                unique_definitions.append(definition)
-        if not unique_definitions:
+        if not definitions:
             return None
-        return Translation(self, word_to_translate, part_of_speech, unique_definitions)
+        return Translation(self, word_to_translate, part_of_speech, definitions)
 
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         """
@@ -302,7 +298,7 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
         then creating a separate Translation object for each part of speech listed in the
         "Dictionary" pane.
         """
-        lang_from = self.lang_from_mapping[self.language_from]
+        lang_from = self.lang_shortener[self.language_from]
         try:
             soup = await self._get_soup(self.link(word_to_translate))
         except ValueError:
@@ -348,7 +344,7 @@ class CollinsSpanishWebsiteScraper(WebsiteScraper):
         (Language.ENGLISH, Language.SPANISH),
         (Language.SPANISH, Language.ENGLISH),
     ]
-    base_url = "https://www.collinsdictionary.com/dictionary/"
+    base_url = "https://www.collinsdictionary.com/dictionary"
     lookup_key = "collinsspanish"
 
     def link(self, word_to_translate: str) -> str | None:
@@ -357,12 +353,62 @@ class CollinsSpanishWebsiteScraper(WebsiteScraper):
     def reverse_link(self, definition: str) -> str | None:
         return f"{self.base_url}/{self.language_to.value}-{self.language_from.value}/{self._standardize(definition)}"  # noqa: E501
 
+    def _get_translation_from_part_of_speech_div(
+        self, word_to_translate: str, part_of_speech_div: Tag
+    ) -> Translation | None:
+        part_of_speech = part_of_speech_div.find(class_=["hi", "rend-sc", "pos"]).text  # type: ignore[union-attr]  # noqa: E501
+        definition_divs: list[Tag] = part_of_speech_div.find_all("div", class_="sense")
+        definitions: list[Definition] = []
+        for definition_div in definition_divs:
+            text = definition_div.find(class_=["quote", "ref"]).text  # type: ignore[union-attr]
+            sentence_pairs = []
+            example_divs: list[Tag] = definition_div.find_all(class_=["cit", "type-example"])
+            for example_div in example_divs:
+                quotes: list[Tag] = example_div.find_all(class_=["quote"])
+                if len(quotes) != 2:
+                    continue
+                source_sentence = quotes[0].text
+                target_sentence = quotes[1].text
+                sentence_pair = SentencePair(source_sentence, target_sentence)
+                sentence_pairs.append(sentence_pair)
+            if not sentence_pairs:
+                continue
+            definition = Definition(text, sentence_pairs)
+            definitions.append(definition)
+        if not definitions:
+            return None
+        return Translation(self, word_to_translate, part_of_speech, definitions)
+
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
-        # TODO: Implement
-        return []
+        url = self.link(word_to_translate)
+        session = AsyncHTMLSession()
+        try:
+            logging.disable(logging.CRITICAL)
+            response: HTMLResponse = await session.get(url)
+            await response.html.arender()  # Render the page including JavaScript
+            soup = BeautifulSoup(response.html.html, "html.parser")
+            if soup.text.find("Enable JavaScript and cookies to continue") != -1:
+                raise ValueError(
+                    "Collins online Spanish dictionary remains scrape-resistant even with JavaScript rendering, owing to Cloudflare's anti-bot protection"  # noqa: E501
+                )
+        finally:
+            await session.close()
+            logging.disable(logging.NOTSET)
+
+        part_of_speech_divs = soup.find_all("div", class_="hom")
+        all_translations: list[Translation] = []
+        for part_of_speech_div in part_of_speech_divs:
+            translation = self._get_translation_from_part_of_speech_div(
+                word_to_translate, part_of_speech_div
+            )
+            if translation:
+                all_translations.append(translation)
+        return all_translations
 
 
-async def main(word_to_translate: str = "hola", retriever_type: str = "spanishdict") -> None:
+async def main(
+    word_to_translate: str = "hola", retriever_type: str = SpanishDictWebsiteScraper.lookup_key
+) -> None:
     """
     A demonstration of the SpanishDictWebsiteScraper class. The Spanish word "hola" is used by
     default, but another word can be specified using the spanish_word argument.

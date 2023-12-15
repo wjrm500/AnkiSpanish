@@ -163,9 +163,19 @@ class Translation:
         self.retriever = retriever
         self.word_to_translate = word_to_translate
         self.part_of_speech = part_of_speech
-        self.definitions = definitions[:max_definitions]
-        for definition in self.definitions:
-            definition.set_translation(self)
+        self._set_definitions(definitions, max_definitions)
+
+    def _set_definitions(self, definitions: list[Definition], max_definitions: int) -> None:
+        # Remove duplicate definitions
+        seen = set()
+        unique_definitions: list[Definition] = []
+        for definition in definitions:
+            if definition.text not in seen:
+                seen.add(definition.text)
+                unique_definitions.append(definition)
+        self.definitions = unique_definitions[:max_definitions]
+
+        # Remove synonymous definitions if configured to do so
         if self.remove_synonymous_definitions:
             marks = SynonymChecker.mark_synonymous_words(
                 [definition.text for definition in self.definitions],
@@ -174,6 +184,10 @@ class Translation:
             self.definitions = [
                 definition for definition, mark in zip(self.definitions, marks) if not mark
             ]
+
+        # Set translation for each definition
+        for definition in self.definitions:
+            definition.set_translation(self)
 
     def stringify(self, verbose: bool = False) -> str:
         s = f"{PC.GREEN}{self.word_to_translate} ({self.part_of_speech}) - {', '.join([definition.text for definition in self.definitions])}{PC.RESET}"  # noqa: E501
