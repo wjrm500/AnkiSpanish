@@ -68,12 +68,12 @@ class Retriever(abc.ABC):
             self.requests_made += 1
             return response.status == HTTPStatus.TOO_MANY_REQUESTS
 
-    def lang_from_url(self, word_to_translate: str) -> str | None:
-        """Returns a hyperlink to the dictionary page for the word to translate."""
+    def link(self, word_to_translate: str) -> str | None:
+        """Returns a hyperlink to a page showing more information for the word to translate."""
         return None
 
-    def lang_to_url(self, word_to_translate: str) -> str | None:
-        """Returns a hyperlink to the dictionary page for the translation."""
+    def reverse_link(self, definition: str) -> str | None:
+        """Returns a hyperlink to a page showing more information for the translated definition."""
         return None
 
     @staticmethod
@@ -237,22 +237,18 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
     }
     lookup_key = "spanishdict"
 
-    def lang_from_url(self, word_to_translate: str) -> str | None:
-        lang_from = self.lang_from_mapping[self.language_from]
-        return f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={lang_from}"  # noqa: E501
+    def link(self, word_to_translate: str) -> str | None:
+        return f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={self.lang_from_mapping[self.language_from]}"  # noqa: E501
 
-    def lang_to_url(self, word_to_translate: str) -> str | None:
-        lang_to = self.lang_from_mapping[self.language_to]
-        return (
-            f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={lang_to}"
-        )
+    def reverse_link(self, definition: str) -> str | None:
+        return f"{self.base_url}/translate/{self._standardize(definition)}?langFrom={self.lang_from_mapping[self.language_to]}"  # noqa: E501
 
     def _get_translation_from_part_of_speech_div(
         self, word_to_translate: str, part_of_speech_div: Tag
     ) -> Translation | None:
         """
-        Returns a Translation object from a given part of speech div. If the part of speech div does
-        not contains only "No direct translation" definitions, or only definitions with no complete
+        Returns a Translation object from a given part of speech div. If the part of speech div
+        contains only "No direct translation" definitions, or only definitions with no complete
         sentence pairs, None is returned.
         """
         part_of_speech = (
@@ -308,7 +304,7 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
         """
         lang_from = self.lang_from_mapping[self.language_from]
         try:
-            soup = await self._get_soup(self.lang_from_url(word_to_translate))
+            soup = await self._get_soup(self.link(word_to_translate))
         except ValueError:
             raise ValueError(
                 f"URL redirect occurred for '{word_to_translate}' - are you sure it is a valid {self.language_from.value.title()} word?"  # noqa: E501
@@ -352,8 +348,14 @@ class CollinsSpanishWebsiteScraper(WebsiteScraper):
         (Language.ENGLISH, Language.SPANISH),
         (Language.SPANISH, Language.ENGLISH),
     ]
-    base_url = "https://www.collinsdictionary.com/dictionary/spanish-english"
+    base_url = "https://www.collinsdictionary.com/dictionary/"
     lookup_key = "collinsspanish"
+
+    def link(self, word_to_translate: str) -> str | None:
+        return f"{self.base_url}/{self.language_from.value}-{self.language_to.value}/{self._standardize(word_to_translate)}"  # noqa: E501
+
+    def reverse_link(self, definition: str) -> str | None:
+        return f"{self.base_url}/{self.language_to.value}-{self.language_from.value}/{self._standardize(definition)}"  # noqa: E501
 
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         # TODO: Implement

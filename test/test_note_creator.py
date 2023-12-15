@@ -44,8 +44,8 @@ def field_values(deck_id: int) -> list[str]:
 @pytest.fixture
 def retriever() -> Retriever:
     retriever = MagicMock(spec=Retriever)
-    retriever.lang_from_url.return_value = "https://www.example.com/translate/prueba"
-    retriever.lang_to_url.return_value = "https://www.example.com/translate/test?langFrom=en"
+    retriever.link.return_value = "https://www.example.com/translate/prueba"
+    retriever.reverse_link.return_value = "https://www.example.com/translate/test?langFrom=en"
     return retriever
 
 

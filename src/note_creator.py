@@ -76,13 +76,13 @@ class NoteCreator:
 
         word_to_translate_html = (
             f"<a href='{lang_from_url}' style='color:red;'>{translation.word_to_translate}</a>"
-            if (lang_from_url := translation.retriever.lang_from_url(translation.word_to_translate))
+            if (lang_from_url := translation.retriever.link(translation.word_to_translate))
             else translation.word_to_translate
         )
         definition_html = ", ".join(
             [
                 f"<a href='{lang_to_url}' style='color:green;'>{definition.text}</a>"
-                if (lang_to_url := definition.translation.retriever.lang_to_url(definition.text))
+                if (lang_to_url := definition.translation.retriever.reverse_link(definition.text))
                 else definition.text
                 for definition in translation.definitions
             ]
