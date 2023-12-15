@@ -2,7 +2,6 @@ import abc
 import argparse
 import asyncio
 import json
-import logging
 import os
 import re
 import urllib.parse
@@ -441,25 +440,29 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
 
     def link(self, word_to_translate: str) -> str | None:
         if (self.language_from, self.language_to) == (Language.ENGLISH, Language.SPANISH):
-            return f"{self.base_url}/es/translation.asp?tranword={self._standardize(word_to_translate)}"
+            return f"{self.base_url}/es/translation.asp?tranword={self._standardize(word_to_translate)}"  # noqa: E501
         elif (self.language_from, self.language_to) == (Language.SPANISH, Language.ENGLISH):
-            return f"{self.base_url}/es/en/translation.asp?spen={self._standardize(word_to_translate)}"
+            return (
+                f"{self.base_url}/es/en/translation.asp?spen={self._standardize(word_to_translate)}"
+            )
         return f"{self.base_url}/{self.lang_shortener[self.language_from]}{self.lang_shortener[self.language_to]}/{self._standardize(word_to_translate)}"  # noqa: E501
-    
+
     def reverse_link(self, definition: str) -> str | None:
         if (self.language_from, self.language_to) == (Language.ENGLISH, Language.SPANISH):
             return f"{self.base_url}/es/en/translation.asp?spen={self._standardize(definition)}"
         elif (self.language_from, self.language_to) == (Language.SPANISH, Language.ENGLISH):
             return f"{self.base_url}/es/translation.asp?tranword={self._standardize(definition)}"
-        return f"{self.base_url}/{self.lang_shortener[self.language_from]}{self.lang_shortener[self.language_to]}/{self._standardize(definition)}"
-    
+        return f"{self.base_url}/{self.lang_shortener[self.language_from]}{self.lang_shortener[self.language_to]}/{self._standardize(definition)}"  # noqa: E501
+
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         soup = await self._get_soup(self.link(word_to_translate))
-        from_word_divs: list[Tag] = soup.find_all("td", class_="FrWrd")[1:]  # First instance is header with language name
-        word_to_translate = self._standardize(
-            from_word_divs[0].contents[0].contents[0].contents[0]
-        )
-        to_word_divs: list[Tag] = soup.find_all("td", class_="ToWrd")[1:]  # First instance is header with language name
+        from_word_divs: list[Tag] = soup.find_all("td", class_="FrWrd")[
+            1:
+        ]  # First instance is header with language name
+        word_to_translate = self._standardize(from_word_divs[0].contents[0].contents[0].contents[0])
+        to_word_divs: list[Tag] = soup.find_all("td", class_="ToWrd")[
+            1:
+        ]  # First instance is header with language name
         example_divs: list[Tag] = soup.find_all("td", class_=["ToEx", "FrEx"])
         to_example_divs, from_example_divs = [], []
         current_class = None

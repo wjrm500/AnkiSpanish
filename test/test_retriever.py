@@ -125,57 +125,8 @@ def spanish_dict_url(test_word: str) -> str:
 
 @pytest.fixture
 def spanish_dict_html() -> str:
-    return """
-    <html>
-        <body>
-            <div id="quickdef1-es">
-                <a>test</a>
-            </div>
-            <div id="quickdef2-es">
-                <a>proof</a>
-            </div>
-            <div id="dictionary-neodict-es">
-                <div class="W4_X2sG1">
-                    <div class="VlFhSoPR L0ywlHB1 cNX9vGLU CDAsok0l VEBez1ed">
-                        <a>feminine noun</a>
-                    </div>
-                    <div class="tmBfjszm">
-                        <span>
-                            <a>test</a>
-                        </span>
-                        <div>
-                            <span lang="es">Hay una prueba de matemáticas el miércoles.</span>
-                            <span lang="en">There's a math test on Wednesday.</span>
-                        </div>
-                    </div>
-                    <div class="tmBfjszm">
-                        <span>
-                            <a>proof</a>
-                        </span>
-                        <div>
-                            <span lang="es">La carta fue la prueba de que su historia era cierta.</span>  # noqa: E501
-                            <span lang="en">The letter was proof that her story was true.</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="W4_X2sG1">
-                    <div class="VlFhSoPR L0ywlHB1 cNX9vGLU CDAsok0l VEBez1ed">
-                        <a>plural noun</a>
-                    </div>
-                    <div class="tmBfjszm">
-                        <span>
-                            <a>evidence</a>
-                        </span>
-                        <div>
-                            <span lang="es">El juez debe pesar todas las pruebas presentadas antes de dictar sentencia.</span>  # noqa: E501
-                            <span lang="en">The judge must weigh all of the evidence presented before sentencing.</span>  # noqa: E501
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </body>
-    </html>
-    """
+    with open(TEST_HTML_DIR + "spanish_dict_website_scraper_test.html", encoding="utf-8") as fh:
+        return fh.read()
 
 
 @pytest.mark.asyncio
@@ -202,7 +153,15 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
                                 SentencePair(
                                     "Hay una prueba de matemáticas el miércoles.",
                                     "There's a math test on Wednesday.",
-                                )
+                                ),
+                                SentencePair(
+                                    "No pasó la prueba de acceso y tiene que tomar cursos de regularización.",  # noqa: E501
+                                    "He didn't pass the entrance examination and has to take remedial courses.",  # noqa: E501
+                                ),
+                                SentencePair(
+                                    "Nos han dado una prueba para hacer en casa.",
+                                    "We've been given a quiz to do at home.",
+                                ),
                             ],
                         ),
                         Definition(
@@ -211,6 +170,23 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
                                 SentencePair(
                                     "La carta fue la prueba de que su historia era cierta.",
                                     "The letter was proof that her story was true.",
+                                ),
+                                SentencePair(
+                                    "Te doy este anillo como prueba de mi amor.",
+                                    "I give you this ring as a token of my love.",
+                                ),
+                                SentencePair(
+                                    "Su risa fue la prueba de que ya no estaba enojada.",
+                                    "Her laugh was a sign that she was no longer mad.",
+                                ),
+                            ],
+                        ),
+                        Definition(
+                            "piece of evidence",
+                            [
+                                SentencePair(
+                                    "El fiscal no pudo presentar ninguna prueba para condenarlo.",
+                                    "The prosecution couldn't present a single piece of evidence to convict him.",  # noqa: E501
                                 )
                             ],
                         ),
@@ -261,7 +237,15 @@ async def test_spanish_dict_website_scraper_concise_mode(
                                 SentencePair(
                                     "Hay una prueba de matemáticas el miércoles.",
                                     "There's a math test on Wednesday.",
-                                )
+                                ),
+                                SentencePair(
+                                    "No pasó la prueba de acceso y tiene que tomar cursos de regularización.",  # noqa: E501
+                                    "He didn't pass the entrance examination and has to take remedial courses.",  # noqa: E501
+                                ),
+                                SentencePair(
+                                    "Nos han dado una prueba para hacer en casa.",
+                                    "We've been given a quiz to do at home.",
+                                ),
                             ],
                         ),
                         Definition(
@@ -270,7 +254,15 @@ async def test_spanish_dict_website_scraper_concise_mode(
                                 SentencePair(
                                     "La carta fue la prueba de que su historia era cierta.",
                                     "The letter was proof that her story was true.",
-                                )
+                                ),
+                                SentencePair(
+                                    "Te doy este anillo como prueba de mi amor.",
+                                    "I give you this ring as a token of my love.",
+                                ),
+                                SentencePair(
+                                    "Su risa fue la prueba de que ya no estaba enojada.",
+                                    "Her laugh was a sign that she was no longer mad.",
+                                ),
                             ],
                         ),
                     ],
@@ -302,9 +294,17 @@ async def test_spanish_dict_website_scraper_concise_mode(
                                 SentencePair(
                                     "Hay una prueba de matemáticas el miércoles.",
                                     "There's a math test on Wednesday.",
-                                )
+                                ),
+                                SentencePair(
+                                    "No pasó la prueba de acceso y tiene que tomar cursos de regularización.",  # noqa: E501
+                                    "He didn't pass the entrance examination and has to take remedial courses.",  # noqa: E501
+                                ),
+                                SentencePair(
+                                    "Nos han dado una prueba para hacer en casa.",
+                                    "We've been given a quiz to do at home.",
+                                ),
                             ],
-                        )
+                        ),
                     ],
                 ),
             ]
@@ -379,9 +379,7 @@ def collins_url(test_word: str) -> str:
 async def test_collins_website_scraper(test_word: str, collins_url: str) -> None:
     with open(TEST_HTML_DIR + "collins_website_scraper_test.html", encoding="utf-8") as fh:
         mock_html = fh.read()
-    retriever = CollinsWebsiteScraper(
-        language_from=Language.SPANISH, language_to=Language.ENGLISH
-    )
+    retriever = CollinsWebsiteScraper(language_from=Language.SPANISH, language_to=Language.ENGLISH)
     with aioresponses() as m:
         m.get(collins_url, status=200, body=mock_html)
         translations = await retriever.retrieve_translations(test_word)
@@ -405,7 +403,7 @@ async def test_collins_website_scraper(test_word: str, collins_url: str) -> None
                             SentencePair(
                                 "sin dar la menor prueba de ello",
                                 "without giving the faintest sign of it",
-                            )
+                            ),
                         ],
                     ),
                     Definition(
