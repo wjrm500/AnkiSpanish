@@ -368,3 +368,80 @@ async def test_openai_api_retriever() -> None:
         ],
     )
     assert translations == [expected_translation]
+
+
+@pytest.fixture
+def collins_url(test_word: str) -> str:
+    return f"https://www.collinsdictionary.com/dictionary/spanish-english/{test_word}"
+
+
+@pytest.mark.asyncio
+async def test_collins_website_scraper(test_word: str, collins_url: str) -> None:
+    with open(TEST_HTML_DIR + "collins_website_scraper_test.html", encoding="utf-8") as fh:
+        mock_html = fh.read()
+    retriever = CollinsWebsiteScraper(
+        language_from=Language.SPANISH, language_to=Language.ENGLISH
+    )
+    with aioresponses() as m:
+        m.get(collins_url, status=200, body=mock_html)
+        translations = await retriever.retrieve_translations(test_word)
+        assert translations == [
+            Translation(
+                retriever,
+                "prueba",
+                "feminine noun",
+                [
+                    Definition(
+                        "proof",
+                        [
+                            SentencePair(
+                                "esta es una prueba palpable de su incompetencia",
+                                "this is clear proof of his incompetence",
+                            ),
+                            SentencePair(
+                                "es prueba de que tiene buena salud",
+                                "that proves or shows he’s in good health",
+                            ),
+                            SentencePair(
+                                "sin dar la menor prueba de ello",
+                                "without giving the faintest sign of it",
+                            )
+                        ],
+                    ),
+                    Definition(
+                        "piece of evidence",
+                        [
+                            SentencePair(
+                                "pruebas",
+                                "evidence singular",
+                            ),
+                            SentencePair(
+                                "el fiscal presentó nuevas pruebas",
+                                "the prosecutor presented new evidence",
+                            ),
+                            SentencePair(
+                                "se encuentran en libertad por falta de pruebas",
+                                "they were released for lack of evidence",
+                            ),
+                        ],
+                    ),
+                    Definition(
+                        "test",
+                        [
+                            SentencePair(
+                                "la maestra nos hizo una prueba de vocabulario",
+                                "our teacher gave us a vocabulary test",
+                            ),
+                            SentencePair(
+                                "el médico me hizo más pruebas",
+                                "the doctor did some more tests on me",
+                            ),
+                            SentencePair(
+                                "se tendrán que hacer la prueba del SIDA",
+                                "they’ll have to be tested for AIDS",
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ]
