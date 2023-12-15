@@ -205,16 +205,17 @@ class OpenAIAPIRetriever(APIRetriever):
                 sentence_pairs = []
                 for sentence_pair_dict in definition_dict["sentence_pairs"]:
                     sentence_pair = SentencePair(
-                        sentence_pair_dict["source_sentence"], sentence_pair_dict["target_sentence"]
+                        source_sentence=sentence_pair_dict["source_sentence"],
+                        target_sentence=sentence_pair_dict["target_sentence"],
                     )
                     sentence_pairs.append(sentence_pair)
-                definition = Definition(definition_dict["text"], sentence_pairs)
+                definition = Definition(text=definition_dict["text"], sentence_pairs=sentence_pairs)
                 definitions.append(definition)
             translation = Translation(
-                self,
-                translation_dict["word_to_translate"],
-                translation_dict["part_of_speech"],
-                definitions,
+                retriever=self,
+                word_to_translate=translation_dict["word_to_translate"],
+                part_of_speech=translation_dict["part_of_speech"],
+                definitions=definitions,
             )
             translations.append(translation)
         return translations
@@ -278,17 +279,23 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
                 )
                 if not source_sentence_span or not target_sentence_span:
                     continue
-                source_sentence = source_sentence_span.text
-                target_sentence = target_sentence_span.text
-                sentence_pair = SentencePair(source_sentence, target_sentence)
+                sentence_pair = SentencePair(
+                    source_sentence=source_sentence_span.text,
+                    target_sentence=target_sentence_span.text,
+                )
                 sentence_pairs.append(sentence_pair)
             if not sentence_pairs:
                 continue
-            definition = Definition(text, sentence_pairs)
+            definition = Definition(text=text, sentence_pairs=sentence_pairs)
             definitions.append(definition)
         if not definitions:
             return None
-        return Translation(self, word_to_translate, part_of_speech, definitions)
+        return Translation(
+            retriever=self,
+            word_to_translate=word_to_translate,
+            part_of_speech=part_of_speech,
+            definitions=definitions,
+        )
 
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         """
@@ -373,17 +380,22 @@ class CollinsWebsiteScraper(WebsiteScraper):
                 quotes: list[Tag] = example_div.find_all(class_=["quote"])
                 if len(quotes) != 2:
                     continue
-                source_sentence = quotes[0].text
-                target_sentence = quotes[1].text
-                sentence_pair = SentencePair(source_sentence, target_sentence)
+                sentence_pair = SentencePair(
+                    source_sentence=quotes[0].text, target_sentence=quotes[1].text
+                )
                 sentence_pairs.append(sentence_pair)
             if not sentence_pairs:
                 continue
-            definition = Definition(text, sentence_pairs)
+            definition = Definition(text=text, sentence_pairs=sentence_pairs)
             definitions.append(definition)
         if not definitions:
             return None
-        return Translation(self, word_to_translate, part_of_speech, definitions)
+        return Translation(
+            retriever=self,
+            word_to_translate=word_to_translate,
+            part_of_speech=part_of_speech,
+            definitions=definitions,
+        )
 
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         soup = await self._get_soup(self.link(word_to_translate))
@@ -499,19 +511,27 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
                 definition_text = self._standardize(towrd_div.contents[0].strip().split(",")[0])
                 if definition_text not in definition_dict:
                     definition = Definition(
-                        definition_text, [SentencePair(frex_div.text, toex_div.text)]
+                        text=definition_text,
+                        sentence_pairs=[
+                            SentencePair(
+                                source_sentence=frex_div.text, target_sentence=toex_div.text
+                            )
+                        ],
                     )
                     definition_dict[definition_text] = definition
                     if self.concise_mode:
                         break
                 else:
                     definition = definition_dict[definition_text]
-                    definition.sentence_pairs.append(SentencePair(frex_div.text, toex_div.text))
+                    sentence_pair = SentencePair(
+                        source_sentence=frex_div.text, target_sentence=toex_div.text
+                    )
+                    definition.sentence_pairs.append(sentence_pair)
             translation = Translation(
-                self,
-                word_to_translate,
-                part_of_speech,
-                list(definition_dict.values()),
+                retriever=self,
+                word_to_translate=word_to_translate,
+                part_of_speech=part_of_speech,
+                definitions=list(definition_dict.values()),
             )
             translations.append(translation)
             if self.concise_mode:

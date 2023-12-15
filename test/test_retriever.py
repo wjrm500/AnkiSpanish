@@ -145,66 +145,66 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
             translations = await retriever.retrieve_translations(test_word)
             assert translations == [
                 Translation(
-                    retriever,
-                    "prueba",
-                    "feminine noun",
-                    [
+                    retriever=retriever,
+                    word_to_translate="prueba",
+                    part_of_speech="feminine noun",
+                    definitions=[
                         Definition(
-                            "test",
-                            [
+                            text="test",
+                            sentence_pairs=[
                                 SentencePair(
-                                    "Hay una prueba de matemáticas el miércoles.",
-                                    "There's a math test on Wednesday.",
+                                    source_sentence="Hay una prueba de matemáticas el miércoles.",
+                                    target_sentence="There's a math test on Wednesday.",
                                 ),
                                 SentencePair(
-                                    "No pasó la prueba de acceso y tiene que tomar cursos de regularización.",  # noqa: E501
-                                    "He didn't pass the entrance examination and has to take remedial courses.",  # noqa: E501
+                                    source_sentence="No pasó la prueba de acceso y tiene que tomar cursos de regularización.",  # noqa: E501
+                                    target_sentence="He didn't pass the entrance examination and has to take remedial courses.",  # noqa: E501
                                 ),
                                 SentencePair(
-                                    "Nos han dado una prueba para hacer en casa.",
-                                    "We've been given a quiz to do at home.",
+                                    source_sentence="Nos han dado una prueba para hacer en casa.",
+                                    target_sentence="We've been given a quiz to do at home.",
                                 ),
                             ],
                         ),
                         Definition(
-                            "proof",
-                            [
+                            text="proof",
+                            sentence_pairs=[
                                 SentencePair(
-                                    "La carta fue la prueba de que su historia era cierta.",
-                                    "The letter was proof that her story was true.",
+                                    source_sentence="La carta fue la prueba de que su historia era cierta.",  # noqa: E501
+                                    target_sentence="The letter was proof that her story was true.",
                                 ),
                                 SentencePair(
-                                    "Te doy este anillo como prueba de mi amor.",
-                                    "I give you this ring as a token of my love.",
+                                    source_sentence="Te doy este anillo como prueba de mi amor.",
+                                    target_sentence="I give you this ring as a token of my love.",
                                 ),
                                 SentencePair(
-                                    "Su risa fue la prueba de que ya no estaba enojada.",
-                                    "Her laugh was a sign that she was no longer mad.",
+                                    source_sentence="Su risa fue la prueba de que ya no estaba enojada.",  # noqa: E501
+                                    target_sentence="Her laugh was a sign that she was no longer mad.",  # noqa: E501
                                 ),
                             ],
                         ),
                         Definition(
-                            "piece of evidence",
-                            [
+                            text="piece of evidence",
+                            sentence_pairs=[
                                 SentencePair(
-                                    "El fiscal no pudo presentar ninguna prueba para condenarlo.",
-                                    "The prosecution couldn't present a single piece of evidence to convict him.",  # noqa: E501
+                                    source_sentence="El fiscal no pudo presentar ninguna prueba para condenarlo.",  # noqa: E501
+                                    target_sentence="The prosecution couldn't present a single piece of evidence to convict him.",  # noqa: E501
                                 )
                             ],
                         ),
                     ],
                 ),
                 Translation(
-                    retriever,
-                    "prueba",
-                    "plural noun",
-                    [
+                    retriever=retriever,
+                    word_to_translate="prueba",
+                    part_of_speech="plural noun",
+                    definitions=[
                         Definition(
-                            "evidence",
-                            [
+                            text="evidence",
+                            sentence_pairs=[
                                 SentencePair(
-                                    "El juez debe pesar todas las pruebas presentadas antes de dictar sentencia.",  # noqa: E501
-                                    "The judge must weigh all of the evidence presented before sentencing.",  # noqa: E501
+                                    source_sentence="El juez debe pesar todas las pruebas presentadas antes de dictar sentencia.",  # noqa: E501
+                                    target_sentence="The judge must weigh all of the evidence presented before sentencing.",  # noqa: E501
                                 )
                             ],
                         )
@@ -229,41 +229,41 @@ async def test_spanish_dict_website_scraper_concise_mode(
             translations = await retriever.retrieve_translations(test_word)
             assert translations == [
                 Translation(
-                    retriever,
-                    "prueba",
-                    "feminine noun",
-                    [
+                    retriever=retriever,
+                    word_to_translate="prueba",
+                    part_of_speech="feminine noun",
+                    definitions=[
                         Definition(
-                            "test",
-                            [
+                            text="test",
+                            sentence_pairs=[
                                 SentencePair(
-                                    "Hay una prueba de matemáticas el miércoles.",
-                                    "There's a math test on Wednesday.",
+                                    source_sentence="Hay una prueba de matemáticas el miércoles.",
+                                    target_sentence="There's a math test on Wednesday.",
                                 ),
                                 SentencePair(
-                                    "No pasó la prueba de acceso y tiene que tomar cursos de regularización.",  # noqa: E501
-                                    "He didn't pass the entrance examination and has to take remedial courses.",  # noqa: E501
+                                    source_sentence="No pasó la prueba de acceso y tiene que tomar cursos de regularización.",  # noqa: E501
+                                    target_sentence="He didn't pass the entrance examination and has to take remedial courses.",  # noqa: E501
                                 ),
                                 SentencePair(
-                                    "Nos han dado una prueba para hacer en casa.",
-                                    "We've been given a quiz to do at home.",
+                                    source_sentence="Nos han dado una prueba para hacer en casa.",
+                                    target_sentence="We've been given a quiz to do at home.",
                                 ),
                             ],
                         ),
                         Definition(
-                            "proof",
-                            [
+                            text="proof",
+                            sentence_pairs=[
                                 SentencePair(
-                                    "La carta fue la prueba de que su historia era cierta.",
-                                    "The letter was proof that her story was true.",
+                                    source_sentence="La carta fue la prueba de que su historia era cierta.",  # noqa: E501
+                                    target_sentence="The letter was proof that her story was true.",
                                 ),
                                 SentencePair(
-                                    "Te doy este anillo como prueba de mi amor.",
-                                    "I give you this ring as a token of my love.",
+                                    source_sentence="Te doy este anillo como prueba de mi amor.",
+                                    target_sentence="I give you this ring as a token of my love.",
                                 ),
                                 SentencePair(
-                                    "Su risa fue la prueba de que ya no estaba enojada.",
-                                    "Her laugh was a sign that she was no longer mad.",
+                                    source_sentence="Su risa fue la prueba de que ya no estaba enojada.",  # noqa: E501
+                                    target_sentence="Her laugh was a sign that she was no longer mad.",  # noqa: E501
                                 ),
                             ],
                         ),
@@ -286,24 +286,24 @@ async def test_spanish_dict_website_scraper_concise_mode(
             translations = await retriever.retrieve_translations(test_word)
             assert translations == [
                 Translation(
-                    retriever,
-                    "prueba",
-                    "feminine noun",
-                    [
+                    retriever=retriever,
+                    word_to_translate="prueba",
+                    part_of_speech="feminine noun",
+                    definitions=[
                         Definition(
-                            "test",
-                            [
+                            text="test",
+                            sentence_pairs=[
                                 SentencePair(
-                                    "Hay una prueba de matemáticas el miércoles.",
-                                    "There's a math test on Wednesday.",
+                                    source_sentence="Hay una prueba de matemáticas el miércoles.",
+                                    target_sentence="There's a math test on Wednesday.",
                                 ),
                                 SentencePair(
-                                    "No pasó la prueba de acceso y tiene que tomar cursos de regularización.",  # noqa: E501
-                                    "He didn't pass the entrance examination and has to take remedial courses.",  # noqa: E501
+                                    source_sentence="No pasó la prueba de acceso y tiene que tomar cursos de regularización.",  # noqa: E501
+                                    target_sentence="He didn't pass the entrance examination and has to take remedial courses.",  # noqa: E501
                                 ),
                                 SentencePair(
-                                    "Nos han dado una prueba para hacer en casa.",
-                                    "We've been given a quiz to do at home.",
+                                    source_sentence="Nos han dado una prueba para hacer en casa.",
+                                    target_sentence="We've been given a quiz to do at home.",
                                 ),
                             ],
                         ),
@@ -354,16 +354,16 @@ async def test_openai_api_retriever() -> None:
     retriever.model = OpenAIModel.GPT_4_TURBO
     translations = await retriever.retrieve_translations("hola")
     expected_translation = Translation(
-        retriever,
-        "hola",
-        "interjection",
-        [
+        retriever=retriever,
+        word_to_translate="hola",
+        part_of_speech="interjection",
+        definitions=[
             Definition(
-                "hello",
-                [
+                text="hello",
+                sentence_pairs=[
                     SentencePair(
-                        "Hola, ¿cómo estás?",
-                        "Hello, how are you?",
+                        source_sentence="Hola, ¿cómo estás?",
+                        target_sentence="Hello, how are you?",
                     )
                 ],
             )
@@ -387,58 +387,58 @@ async def test_collins_website_scraper(test_word: str, collins_url: str) -> None
         translations = await retriever.retrieve_translations(test_word)
         assert translations == [
             Translation(
-                retriever,
-                "prueba",
-                "feminine noun",
-                [
+                retriever=retriever,
+                word_to_translate="prueba",
+                part_of_speech="feminine noun",
+                definitions=[
                     Definition(
-                        "proof",
-                        [
+                        text="proof",
+                        sentence_pairs=[
                             SentencePair(
-                                "esta es una prueba palpable de su incompetencia",
-                                "this is clear proof of his incompetence",
+                                source_sentence="esta es una prueba palpable de su incompetencia",
+                                target_sentence="this is clear proof of his incompetence",
                             ),
                             SentencePair(
-                                "es prueba de que tiene buena salud",
-                                "that proves or shows he’s in good health",
+                                source_sentence="es prueba de que tiene buena salud",
+                                target_sentence="that proves or shows he’s in good health",
                             ),
                             SentencePair(
-                                "sin dar la menor prueba de ello",
-                                "without giving the faintest sign of it",
+                                source_sentence="sin dar la menor prueba de ello",
+                                target_sentence="without giving the faintest sign of it",
                             ),
                         ],
                     ),
                     Definition(
-                        "piece of evidence",
-                        [
+                        text="piece of evidence",
+                        sentence_pairs=[
                             SentencePair(
-                                "pruebas",
-                                "evidence singular",
+                                source_sentence="pruebas",
+                                target_sentence="evidence singular",
                             ),
                             SentencePair(
-                                "el fiscal presentó nuevas pruebas",
-                                "the prosecutor presented new evidence",
+                                source_sentence="el fiscal presentó nuevas pruebas",
+                                target_sentence="the prosecutor presented new evidence",
                             ),
                             SentencePair(
-                                "se encuentran en libertad por falta de pruebas",
-                                "they were released for lack of evidence",
+                                source_sentence="se encuentran en libertad por falta de pruebas",
+                                target_sentence="they were released for lack of evidence",
                             ),
                         ],
                     ),
                     Definition(
-                        "test",
-                        [
+                        text="test",
+                        sentence_pairs=[
                             SentencePair(
-                                "la maestra nos hizo una prueba de vocabulario",
-                                "our teacher gave us a vocabulary test",
+                                source_sentence="la maestra nos hizo una prueba de vocabulario",
+                                target_sentence="our teacher gave us a vocabulary test",
                             ),
                             SentencePair(
-                                "el médico me hizo más pruebas",
-                                "the doctor did some more tests on me",
+                                source_sentence="el médico me hizo más pruebas",
+                                target_sentence="the doctor did some more tests on me",
                             ),
                             SentencePair(
-                                "se tendrán que hacer la prueba del SIDA",
-                                "they’ll have to be tested for AIDS",
+                                source_sentence="se tendrán que hacer la prueba del SIDA",
+                                target_sentence="they’ll have to be tested for AIDS",
                             ),
                         ],
                     ),
