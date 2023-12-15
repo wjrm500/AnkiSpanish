@@ -6,7 +6,7 @@ import os
 import re
 import urllib.parse
 from http import HTTPStatus
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import aiohttp
 import async_lru
@@ -27,12 +27,22 @@ class Retriever(abc.ABC):
     into a standardised representation.
     """
 
+    available_language_pairs: List[Tuple[Language, Language]] = []
     base_url: str
+    concise_mode: bool = False
+    language_from: Language
+    language_to: Language
+    lookup_key: str
     requests_made: int = 0
     session: aiohttp.ClientSession | None = None
 
-    def __init__(self) -> None:
-        self.session = None
+    def __init__(self, language_from: Language, language_to: Language) -> None:
+        self.language_from = language_from
+        self.language_to = language_to
+        if (self.language_from, self.language_to) not in self.available_language_pairs:
+            raise ValueError(
+                f"Language pair {self.language_from.value} -> {self.language_to.value} not supported by the {self.__class__.__name__} retriever"  # noqa: E501
+            )
 
     async def start_session(self) -> None:
         """Starts an asynchronous HTTP session."""
@@ -71,18 +81,21 @@ class Retriever(abc.ABC):
 
 class RetrieverFactory:
     @staticmethod
-    def create_retriever(retriever_type: str) -> Retriever:
-        if retriever_type == "collinsspanish":
-            return CollinsSpanishWebsiteScraper()
-        elif retriever_type == "openai":
-            return OpenAIAPIRetriever()
-        elif retriever_type == "spanishdict":
-            return SpanishDictWebsiteScraper()
-        else:
-            raise ValueError(f"Unknown retriever type: {retriever_type}")
+    def create_retriever(
+        retriever_type: str, language_from: Language, language_to: Language
+    ) -> Retriever:
+        retrievers: List[type[Retriever]] = [
+            CollinsSpanishWebsiteScraper,
+            OpenAIAPIRetriever,
+            SpanishDictWebsiteScraper,
+        ]
+        for retriever in retrievers:
+            if retriever.lookup_key == retriever_type:
+                return retriever(language_from, language_to)
+        raise ValueError(f"Unknown retriever type: {retriever_type}")
 
 
-class WebsiteScraper(Retriever):
+class WebsiteScraper(Retriever, abc.ABC):
     """
     An abstract class for website scrapers. WebsiteScraper objects are retrievers that specifically
     parse HTML responses.
@@ -103,31 +116,37 @@ class WebsiteScraper(Retriever):
             self.requests_made += 1
             if response.status == HTTPStatus.TOO_MANY_REQUESTS:
                 raise RateLimitException()
+            if (response_url := str(response.url)) != url:
+                raise ValueError(f"URL redirected from {url} to {response_url}")
             return BeautifulSoup(await response.text(), "html.parser")
 
 
-class APIRetriever(Retriever):
+class APIRetriever(Retriever, abc.ABC):
     api_key: str | None = None
 
 
 class OpenAIAPIRetriever(APIRetriever):
+    available_language_pairs: List[Tuple[Language, Language]] = [
+        (Language.ENGLISH, Language.SPANISH),
+        (Language.SPANISH, Language.ENGLISH),
+    ]
     client: AsyncOpenAI
-    language: Language | None = None
+    lookup_key = "openai"
     model: OpenAIModel | None = None
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, language_from: Language, language_to: Language) -> None:
+        super().__init__(language_from=language_from, language_to=language_to)
         load_dotenv()
         self.api_key = os.getenv("OPENAI_API_KEY")
         self.client = AsyncOpenAI(api_key=self.api_key)
 
-    def set_language(self) -> None:
+    def set_language_from(self) -> None:
         """
         Get language from user - done via command line for now to keep things simple
         """
         while True:
             try:
-                self.language = Language(
+                self.language_from = Language(
                     input(
                         f"Enter the language of the words being translated. Options are: {', '.join(Language.options())}\n"  # noqa: E501
                     )
@@ -152,17 +171,17 @@ class OpenAIAPIRetriever(APIRetriever):
                 print("Invalid model, please try again.")
 
     async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
-        if not self.language:
-            self.set_language()
+        if not self.language_from:
+            self.set_language_from()
         if not self.model:
             self.set_model()
-        assert self.language
+        assert self.language_from
         assert self.model
         response = await self.client.chat.completions.create(
             model=self.model.value,
             messages=[
                 {"role": "system", "content": OPEN_AI_SYSTEM_PROMPT},
-                {"role": "user", "content": f"{self.language.value}: {word_to_translate}"},
+                {"role": "user", "content": f"{self.language_from.value}: {word_to_translate}"},
             ],
         )
         self.requests_made += 1
@@ -197,11 +216,19 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
     by searching the online dictionary for the Spanish word.
     """
 
+    available_language_pairs: List[Tuple[Language, Language]] = [
+        (Language.ENGLISH, Language.SPANISH),
+        (Language.SPANISH, Language.ENGLISH),
+    ]
     base_url: str = "https://www.spanishdict.com"
-    quickdef_mode: bool = False
+    lang_from_mapping = {
+        Language.ENGLISH: "en",
+        Language.SPANISH: "es",
+    }
+    lookup_key = "spanishdict"
 
     def _get_translation_from_part_of_speech_div(
-        self, spanish_word: str, part_of_speech_div: Tag
+        self, word_to_translate: str, part_of_speech_div: Tag
     ) -> Translation | None:
         """
         Returns a Translation object from a given part of speech div. If the part of speech div does
@@ -227,17 +254,17 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
                 assert isinstance(marker_tag, Tag)
                 marker_tag_parent = marker_tag.parent
                 marker_tag_grandparent = marker_tag_parent.parent  # type: ignore[union-attr]
-                spanish_sentence_span = marker_tag_grandparent.find(  # type: ignore[union-attr]
-                    "span", {"lang": "es"}
+                source_sentence_span = marker_tag_grandparent.find(  # type: ignore[union-attr]
+                    "span", {"lang": self.lang_from_mapping[self.language_from]}
                 )
-                english_sentence_span = marker_tag_grandparent.find(  # type: ignore[union-attr]
-                    "span", {"lang": "en"}
+                target_sentence_span = marker_tag_grandparent.find(  # type: ignore[union-attr]
+                    "span", {"lang": self.lang_from_mapping[self.language_to]}
                 )
-                if not spanish_sentence_span or not english_sentence_span:
+                if not source_sentence_span or not target_sentence_span:
                     continue
-                spanish_sentence = spanish_sentence_span.text
-                english_sentence = english_sentence_span.text
-                sentence_pair = SentencePair(spanish_sentence, english_sentence)
+                source_sentence = source_sentence_span.text
+                target_sentence = target_sentence_span.text
+                sentence_pair = SentencePair(source_sentence, target_sentence)
                 sentence_pairs.append(sentence_pair)
             if not sentence_pairs:
                 continue
@@ -251,30 +278,40 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
                 unique_definitions.append(definition)
         if not unique_definitions:
             return None
-        return Translation(spanish_word, part_of_speech, unique_definitions)
+        return Translation(word_to_translate, part_of_speech, unique_definitions)
 
-    async def retrieve_translations(self, spanish_word: str) -> List[Translation]:
+    async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
         """
-        Retrieves translations for a given Spanish word by accessing the dictionary page for the
-        word, and then creating a separate Translation object for each part of speech listed in the
+        Retrieves translations for a given word by accessing the dictionary page for the word, and
+        then creating a separate Translation object for each part of speech listed in the
         "Dictionary" pane.
         """
-        url = f"{self.base_url}/translate/{self._standardize(spanish_word)}?langFrom=es"
-        soup = await self._get_soup(url)
-        dictionary_neodict_es_div = soup.find("div", id="dictionary-neodict-es")
-        part_of_speech_divs = dictionary_neodict_es_div.find_all(  # type: ignore[union-attr]
+        lang_from = self.lang_from_mapping[self.language_from]
+        url = f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={lang_from}"  # noqa: E501
+        try:
+            soup = await self._get_soup(url)
+        except ValueError:
+            raise ValueError(
+                f"URL redirect occurred for '{word_to_translate}' - are you sure it is a valid {self.language_from.value.title()} word?"  # noqa: E501
+            )
+        dictionary_neodict_div = soup.find("div", id=f"dictionary-neodict-{lang_from}")
+        if not dictionary_neodict_div:
+            raise ValueError(
+                f"Could not parse translation data for '{word_to_translate}' - are you sure it is a valid {self.language_from.value.title()} word?"  # noqa: E501
+            )
+        part_of_speech_divs = dictionary_neodict_div.find_all(  # type: ignore[union-attr]
             class_="W4_X2sG1"
         )
         all_translations: List[Translation] = []
         for part_of_speech_div in part_of_speech_divs:
             translation = self._get_translation_from_part_of_speech_div(
-                spanish_word, part_of_speech_div
+                word_to_translate, part_of_speech_div
             )
             if translation:
                 all_translations.append(translation)
-        if self.quickdef_mode:
+        if self.concise_mode:
             quickdef_divs: list[Tag] = soup.find_all(
-                id=lambda x: x and x.startswith("quickdef") and x.endswith("es")
+                id=lambda x: x and x.startswith("quickdef") and x.endswith(lang_from)
             )
             quickdefs = [(a.text if (a := d.find("a")) else d.text) for d in quickdef_divs]
             quickdef_translations: set[Translation] = set()
@@ -293,6 +330,7 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
 
 class CollinsSpanishWebsiteScraper(WebsiteScraper):
     base_url = "https://www.collinsdictionary.com/dictionary/spanish-english"
+    lookup_key = "collinsspanish"
 
     async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
         # TODO: Implement
@@ -305,7 +343,7 @@ async def main(word_to_translate: str = "hola", retriever_type: str = "spanishdi
     default, but another word can be specified using the spanish_word argument.
     """
     print(f"Word to translate: {word_to_translate}\n")
-    retriever = RetrieverFactory.create_retriever(retriever_type)
+    retriever = RetrieverFactory.create_retriever(retriever_type, Language.ENGLISH, Language.SPANISH)
     translations = await retriever.retrieve_translations(word_to_translate)
     for translation in translations:
         print(translation.stringify(verbose=True))

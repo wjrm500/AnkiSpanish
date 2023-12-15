@@ -7,11 +7,12 @@ from genanki import Deck as AnkiDeck
 from genanki import Note as AnkiNote
 from genanki import Package as AnkiPackage
 
+from constant import Language
 from constant import PrintColour as PC
 from dictionary import Dictionary
 from log import DEBUG, logger
 from note_creator import NoteCreator
-from retriever import Retriever, RetrieverFactory, SpanishDictWebsiteScraper
+from retriever import Retriever, RetrieverFactory
 from source import AnkiPackageSource, CSVSource, SimpleSource, Source
 
 
@@ -66,13 +67,17 @@ async def main(
             await asyncio.gather(*remaining_tasks, return_exceptions=True)
         await retriever.close_session()
 
+    if not all_new_notes:
+        logger.warning("No notes to create, exiting")
+        return
+
     logger.debug(f"Shuffling {len(all_new_notes)} notes")
     random.shuffle(all_new_notes)
 
     logger.info(
         f"Creating Anki deck '{output_anki_deck_name}' (ID {deck_id}) with {len(all_new_notes)} notes"  # noqa: E501
     )
-    deck = AnkiDeck(deck_id, output_anki_deck_name)  # 2059400110
+    deck = AnkiDeck(deck_id, output_anki_deck_name)
     for new_note in all_new_notes:
         deck.add_note(note=new_note)
         logger.debug(
@@ -100,17 +105,29 @@ if __name__ == "__main__":
 
     # Retriever arguments
     parser.add_argument(
-        "--retriever-type", type=str, required=True, help="Retriever type to use. Options are 'collinsspanish', 'openai' and 'spanishdict'"  # noqa: E501
+        "--language-from",
+        type=Language,
+        required=True,
+        help="Language to translate from",
+        choices=list(Language),
     )
     parser.add_argument(
-        "--quickdef",
-        action="store_true",
-        help="If using SpanishDict, use quickdef mode. Quickdef mode basically just uses the definitions defined at the top of the Dictionary pane and filters out any translations or definitions that don't correspond to these definitions, simplifying the deck.",  # noqa: E501
+        "--language-to",
+        type=Language,
+        required=True,
+        help="Language to translate to",
+        choices=list(Language),
     )
     parser.add_argument(
-        "--no-quickdef",
+        "--retriever-type",
+        type=str,
+        required=True,
+        help="Retriever type to use. Options are 'collinsspanish', 'openai' and 'spanishdict'",
+    )
+    parser.add_argument(
+        "--concise-mode",
         action="store_true",
-        help="If using SpanishDict, don't use quickdef mode. Quickdef mode basically just uses the definitions defined at the top of the Dictionary pane and filters out any translations or definitions that don't correspond to these definitions, simplifying the deck.",  # noqa: E501
+        help="Concise mode changes the behaviour of the retriever to find the key definitions and remove any translations or definitions that don't correspond with these, typically leading to a smaller deck with more concise flashcards.",  # noqa: E501
     )
 
     # Minor arguments
@@ -157,9 +174,14 @@ if __name__ == "__main__":
         exit(1)
     words = source.get_words_to_translate()
 
-    retriever = RetrieverFactory.create_retriever(args.retriever_type)
-    if args.quickdef:
-        SpanishDictWebsiteScraper.quickdef_mode = True 
+    try:
+        retriever = RetrieverFactory.create_retriever(
+            args.retriever_type, args.language_from, args.language_to
+        )
+    except ValueError as e:
+        logger.error(e)
+        exit(1)
+    retriever.concise_mode = args.concise_mode
 
     if args.verbose:
         logger.setLevel(DEBUG)
