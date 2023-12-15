@@ -1,5 +1,6 @@
-import pytest
 import os
+
+import pytest
 
 from genanki_extension import load_decks_from_package
 

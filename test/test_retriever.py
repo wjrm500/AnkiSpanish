@@ -125,7 +125,9 @@ def spanish_dict_url(test_word: str) -> str:
 
 @pytest.fixture
 def spanish_dict_html() -> str:
-    with open(TEST_RETRIEVER_DIR + "spanish_dict_website_scraper_test.html", encoding="utf-8") as fh:
+    with open(
+        TEST_RETRIEVER_DIR + "spanish_dict_website_scraper_test.html", encoding="utf-8"
+    ) as fh:
         return fh.read()
 
 
