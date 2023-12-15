@@ -99,9 +99,9 @@ class CSVSource(Source):
         Gets a list of words from a CSV file. The CSV file should have one word per row, with the
         word in the first column.
         """
-        words = []
+        words_to_translate = []
         with open(self.file_path, mode="r", encoding="utf-8") as csv_file:
             reader = csv.reader(csv_file)
             for row in reader:
-                words.append(row[self.col_num])
+                words_to_translate.append(row[self.col_num])
         return self._deduplicate(words_to_translate)
