@@ -1,4 +1,7 @@
-from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from retriever import Retriever
 
 from constant import PrintColour as PC
 from synonym import SynonymChecker
@@ -123,7 +126,7 @@ class Translation:
     remove_synonymous_definitions: bool = False
 
     # Instance variables
-    retriever: "Retriever"  # type: ignore  # noqa: F821
+    retriever: "Retriever"
     word_to_translate: str
     part_of_speech: str
     definitions: list[Definition]
@@ -145,7 +148,7 @@ class Translation:
 
     def __init__(
         self,
-        retriever: "Retriever",  # type: ignore  # noqa: F821
+        retriever: "Retriever",
         word_to_translate: str,
         part_of_speech: str,
         definitions: list[Definition],
