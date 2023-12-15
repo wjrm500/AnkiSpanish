@@ -81,7 +81,7 @@ async def main(
     for new_note in all_new_notes:
         deck.add_note(note=new_note)
         logger.debug(
-            f"Created note for translation {PC.CYAN}{new_note.fields[1]} ({new_note.fields[2]}){PC.RESET}"  # noqa: E501
+            f"Created note for translation {PC.CYAN}{new_note.fields[1]} ({new_note.fields[3]}){PC.RESET}"  # noqa: E501
         )
     AnkiPackage(deck).write_to_file(output_anki_package_path)
     logger.info(f"Processing complete. Total web requests made: {retriever.requests_made}")

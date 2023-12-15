@@ -14,17 +14,18 @@ model = AnkiModel(
     "Language learning flashcard model",
     fields=[
         {"name": "deck_id"},
-        {"name": "word"},
+        {"name": "word_to_translate"},
+        {"name": "word_to_translate_html"},
         {"name": "part_of_speech"},
-        {"name": "definition"},
+        {"name": "definition_html"},
         {"name": "source_sentences"},
         {"name": "target_sentences"},
     ],
     templates=[
         {
             "name": "Card 1",
-            "qfmt": "<div style='text-align:center;'><span style='color:orange; font-size:20px; font-weight:bold'><a href='https://www.spanishdict.com/translate/{{word}}?langFrom=es' style='color: orange;'>{{word}}</a></span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",  # noqa: E501
-            "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",  # noqa: E501
+            "qfmt": "<div style='text-align:center;'><span style='font-size:20px; font-weight:bold'>{{word_to_translate_html}}</span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",  # noqa: E501
+            "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition_html}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",  # noqa: E501
         }
     ],
 )
@@ -74,13 +75,27 @@ class NoteCreator:
             source_sentences.append(definition.sentence_pairs[0].source_sentence)
             target_sentences.append(definition.sentence_pairs[0].target_sentence)
 
+        word_to_translate_html = (
+            f"<a href='{lang_from_url}' style='color:red;'>{translation.word_to_translate}</a>"
+            if (lang_from_url := translation.retriever.lang_from_url(translation.word_to_translate))
+            else translation.word_to_translate
+        )
+        definition_html = ", ".join(
+            [
+                f"<a href='{lang_to_url}' style='color:green;'>{definition.text}</a>"
+                if (lang_to_url := definition.translation.retriever.lang_to_url(definition.text))
+                else definition.text
+                for definition in translation.definitions
+            ]
+        )
         field_dict = {
             "deck_id": str(
                 self.deck_id
-            ),  # Makes note unique to help Anki avoid updating existing notes on import  # noqa: E501
-            "word": translation.word_to_translate,
+            ),  # Makes note unique to help Anki avoid updating existing notes on import
+            "word_to_translate": translation.word_to_translate,
+            "word_to_translate_html": word_to_translate_html,
             "part_of_speech": translation.part_of_speech,
-            "definition": ", ".join([d.text for d in translation.definitions]),
+            "definition_html": definition_html,
             "source_sentences": self._combine_sentences(source_sentences),
             "target_sentences": self._combine_sentences(target_sentences),
         }

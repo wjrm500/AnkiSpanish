@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List
 
 from constant import PrintColour as PC
@@ -17,6 +19,7 @@ class SentencePair:
 
     source_sentence: str
     target_sentence: str
+    definition: "Definition"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SentencePair):
@@ -35,6 +38,9 @@ class SentencePair:
     def __init__(self, source_sentence: str, target_sentence: str) -> None:
         self.source_sentence = source_sentence
         self.target_sentence = target_sentence
+
+    def set_definition(self, definition: "Definition") -> None:
+        self.definition = definition
 
     def stringify(self, verbose: bool = False) -> str:
         return (
@@ -70,6 +76,7 @@ class Definition:
 
     text: str
     sentence_pairs: List[SentencePair]
+    translation: "Translation"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Definition):
@@ -89,6 +96,11 @@ class Definition:
             raise ValueError("Sentence pairs cannot be empty.")
         self.text = text
         self.sentence_pairs = sentence_pairs
+        for sentence_pair in self.sentence_pairs:
+            sentence_pair.set_definition(self)
+
+    def set_translation(self, translation: "Translation") -> None:
+        self.translation = translation
 
     def stringify(self, verbose: bool = False) -> str:
         s = f"{PC.YELLOW}{self.text}{PC.RESET}"
@@ -113,6 +125,7 @@ class Translation:
     remove_synonymous_definitions: bool = False
 
     # Instance variables
+    retriever: "Retriever"  # type: ignore  # noqa: F821
     word_to_translate: str
     part_of_speech: str
     definitions: List[Definition]
@@ -134,6 +147,7 @@ class Translation:
 
     def __init__(
         self,
+        retriever: "Retriever",  # type: ignore  # noqa: F821
         word_to_translate: str,
         part_of_speech: str,
         definitions: List[Definition],
@@ -145,9 +159,12 @@ class Translation:
             raise ValueError("Part of speech cannot be empty.")
         if not definitions:
             raise ValueError("Definitions cannot be empty.")
+        self.retriever = retriever
         self.word_to_translate = word_to_translate
         self.part_of_speech = part_of_speech
         self.definitions = definitions[:max_definitions]
+        for definition in self.definitions:
+            definition.set_translation(self)
         if self.remove_synonymous_definitions:
             marks = SynonymChecker.mark_synonymous_words(
                 [definition.text for definition in self.definitions],

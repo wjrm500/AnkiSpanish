@@ -68,7 +68,16 @@ class Retriever(abc.ABC):
             self.requests_made += 1
             return response.status == HTTPStatus.TOO_MANY_REQUESTS
 
-    def _standardize(self, text: str) -> str:
+    def lang_from_url(self, word_to_translate: str) -> str | None:
+        """Returns a hyperlink to the dictionary page for the word to translate."""
+        return None
+
+    def lang_to_url(self, word_to_translate: str) -> str | None:
+        """Returns a hyperlink to the dictionary page for the translation."""
+        return None
+
+    @staticmethod
+    def _standardize(text: str) -> str:
         """Standardizes a given string by removing punctuation, whitespace, and capitalization."""
         text = re.sub(r"[.,;:!?-]", "", text)
         return text.strip().lower()
@@ -202,6 +211,7 @@ class OpenAIAPIRetriever(APIRetriever):
                 definition = Definition(definition_dict["text"], sentence_pairs)
                 definitions.append(definition)
             translation = Translation(
+                self,
                 translation_dict["word_to_translate"],
                 translation_dict["part_of_speech"],
                 definitions,
@@ -226,6 +236,16 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
         Language.SPANISH: "es",
     }
     lookup_key = "spanishdict"
+
+    def lang_from_url(self, word_to_translate: str) -> str | None:
+        lang_from = self.lang_from_mapping[self.language_from]
+        return f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={lang_from}"  # noqa: E501
+
+    def lang_to_url(self, word_to_translate: str) -> str | None:
+        lang_to = self.lang_from_mapping[self.language_to]
+        return (
+            f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={lang_to}"
+        )
 
     def _get_translation_from_part_of_speech_div(
         self, word_to_translate: str, part_of_speech_div: Tag
@@ -278,7 +298,7 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
                 unique_definitions.append(definition)
         if not unique_definitions:
             return None
-        return Translation(word_to_translate, part_of_speech, unique_definitions)
+        return Translation(self, word_to_translate, part_of_speech, unique_definitions)
 
     async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
         """
@@ -287,9 +307,8 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
         "Dictionary" pane.
         """
         lang_from = self.lang_from_mapping[self.language_from]
-        url = f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={lang_from}"  # noqa: E501
         try:
-            soup = await self._get_soup(url)
+            soup = await self._get_soup(self.lang_from_url(word_to_translate))
         except ValueError:
             raise ValueError(
                 f"URL redirect occurred for '{word_to_translate}' - are you sure it is a valid {self.language_from.value.title()} word?"  # noqa: E501
@@ -329,6 +348,10 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
 
 
 class CollinsSpanishWebsiteScraper(WebsiteScraper):
+    available_language_pairs: List[Tuple[Language, Language]] = [
+        (Language.ENGLISH, Language.SPANISH),
+        (Language.SPANISH, Language.ENGLISH),
+    ]
     base_url = "https://www.collinsdictionary.com/dictionary/spanish-english"
     lookup_key = "collinsspanish"
 
@@ -343,7 +366,9 @@ async def main(word_to_translate: str = "hola", retriever_type: str = "spanishdi
     default, but another word can be specified using the spanish_word argument.
     """
     print(f"Word to translate: {word_to_translate}\n")
-    retriever = RetrieverFactory.create_retriever(retriever_type, Language.ENGLISH, Language.SPANISH)
+    retriever = RetrieverFactory.create_retriever(
+        retriever_type, Language.ENGLISH, Language.SPANISH
+    )
     translations = await retriever.retrieve_translations(word_to_translate)
     for translation in translations:
         print(translation.stringify(verbose=True))

@@ -1,7 +1,7 @@
 import json
 from http import HTTPStatus
 from types import SimpleNamespace
-from typing import List
+from typing import List, Tuple
 from unittest.mock import AsyncMock
 
 import pytest
@@ -28,23 +28,29 @@ def mock_url() -> str:
 @pytest.fixture
 def mock_retriever(mock_url: str) -> Retriever:
     class TestRetriever(Retriever):
+        available_language_pairs: List[Tuple[Language, Language]] = [
+            (Language.SPANISH, Language.ENGLISH)
+        ]
         base_url: str = mock_url
 
         async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
             return []
 
-    return TestRetriever()
+    return TestRetriever(language_from=Language.SPANISH, language_to=Language.ENGLISH)
 
 
 @pytest.fixture
 def mock_website_scraper(mock_url: str) -> WebsiteScraper:
     class TestWebsiteScraper(WebsiteScraper):
+        available_language_pairs: List[Tuple[Language, Language]] = [
+            (Language.SPANISH, Language.ENGLISH)
+        ]
         base_url: str = mock_url
 
         async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
             return []
 
-    return TestWebsiteScraper()
+    return TestWebsiteScraper(language_from=Language.SPANISH, language_to=Language.ENGLISH)
 
 
 @pytest.mark.asyncio
@@ -73,13 +79,22 @@ def test_standardize(mock_retriever: Retriever) -> None:
 
 
 def test_retriever_factory():
-    assert isinstance(RetrieverFactory.create_retriever("openai"), OpenAIAPIRetriever)
-    assert isinstance(
-        RetrieverFactory.create_retriever("collinsspanish"), CollinsSpanishWebsiteScraper
+    openai_retriever = RetrieverFactory.create_retriever(
+        "openai", language_from=Language.SPANISH, language_to=Language.ENGLISH
     )
-    assert isinstance(RetrieverFactory.create_retriever("spanishdict"), SpanishDictWebsiteScraper)
+    assert isinstance(openai_retriever, OpenAIAPIRetriever)
+    collins_retriever = RetrieverFactory.create_retriever(
+        "collinsspanish", language_from=Language.SPANISH, language_to=Language.ENGLISH
+    )
+    assert isinstance(collins_retriever, CollinsSpanishWebsiteScraper)
+    spanishdict_retriever = RetrieverFactory.create_retriever(
+        "spanishdict", language_from=Language.SPANISH, language_to=Language.ENGLISH
+    )
+    assert isinstance(spanishdict_retriever, SpanishDictWebsiteScraper)
     with pytest.raises(ValueError):
-        RetrieverFactory.create_retriever("unknown")
+        RetrieverFactory.create_retriever(
+            "unknown", language_from=Language.SPANISH, language_to=Language.ENGLISH
+        )
 
 
 @pytest.mark.asyncio
@@ -161,17 +176,20 @@ def spanish_dict_html() -> str:
 
 
 @pytest.mark.asyncio
-async def test_spanish_dict_website_scraper_no_quickdef(
+async def test_spanish_dict_website_scraper_no_concise_mode(
     spanish_dict_word: str, spanish_dict_url: str, spanish_dict_html: str
 ) -> None:
     try:
-        scraper = SpanishDictWebsiteScraper()
-        scraper.quickdef_mode = False
+        retriever = SpanishDictWebsiteScraper(
+            language_from=Language.SPANISH, language_to=Language.ENGLISH
+        )
+        retriever.concise_mode = False  # Default is False but setting explicitly for clarity
         with aioresponses() as m:
             m.get(spanish_dict_url, status=200, body=spanish_dict_html)
-            translations = await scraper.retrieve_translations(spanish_dict_word)
+            translations = await retriever.retrieve_translations(spanish_dict_word)
             assert translations == [
                 Translation(
+                    retriever,
                     "prueba",
                     "feminine noun",
                     [
@@ -196,6 +214,7 @@ async def test_spanish_dict_website_scraper_no_quickdef(
                     ],
                 ),
                 Translation(
+                    retriever,
                     "prueba",
                     "plural noun",
                     [
@@ -212,21 +231,24 @@ async def test_spanish_dict_website_scraper_no_quickdef(
                 ),
             ]
     finally:
-        await scraper.close_session()
+        await retriever.close_session()
 
 
 @pytest.mark.asyncio
-async def test_spanish_dict_website_scraper_quickdef(
+async def test_spanish_dict_website_scraper_concise_mode(
     spanish_dict_word: str, spanish_dict_url: str, spanish_dict_html: str
 ) -> None:
-    scraper = SpanishDictWebsiteScraper()
-    scraper.quickdef_mode = True  # Default is True but setting explicitly for clarity
+    retriever = SpanishDictWebsiteScraper(
+        language_from=Language.SPANISH, language_to=Language.ENGLISH
+    )
+    retriever.concise_mode = True
     try:
         with aioresponses() as m:
             m.get(spanish_dict_url, status=200, body=spanish_dict_html)
-            translations = await scraper.retrieve_translations(spanish_dict_word)
+            translations = await retriever.retrieve_translations(spanish_dict_word)
             assert translations == [
                 Translation(
+                    retriever,
                     "prueba",
                     "feminine noun",
                     [
@@ -263,10 +285,11 @@ async def test_spanish_dict_website_scraper_quickdef(
             spanish_dict_html = remove_div_quickdef2_es(spanish_dict_html)
             m.clear()
             m.get(spanish_dict_url, status=200, body=spanish_dict_html)
-            scraper._get_soup.cache_clear()
-            translations = await scraper.retrieve_translations(spanish_dict_word)
+            retriever._get_soup.cache_clear()
+            translations = await retriever.retrieve_translations(spanish_dict_word)
             assert translations == [
                 Translation(
+                    retriever,
                     "prueba",
                     "feminine noun",
                     [
@@ -283,7 +306,7 @@ async def test_spanish_dict_website_scraper_quickdef(
                 ),
             ]
     finally:
-        await scraper.close_session()
+        await retriever.close_session()
 
 
 @pytest.mark.asyncio
@@ -320,12 +343,13 @@ async def test_openai_api_retriever() -> None:
 
     mock_openai_client = AsyncMock()
     mock_openai_client.chat.completions.create.return_value = mock_openai_response
-    retriever = OpenAIAPIRetriever()
+    retriever = OpenAIAPIRetriever(language_from=Language.SPANISH, language_to=Language.ENGLISH)
     retriever.client = mock_openai_client
     retriever.language = Language.SPANISH
     retriever.model = OpenAIModel.GPT_4_TURBO
     translations = await retriever.retrieve_translations("hola")
     expected_translation = Translation(
+        retriever,
         "hola",
         "interjection",
         [
