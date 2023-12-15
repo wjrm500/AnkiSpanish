@@ -1,12 +1,12 @@
 import json
 import sqlite3
 import zipfile
-from typing import Any, Dict, List
+from typing import Any
 
 from genanki import Deck, Model, Note
 
 
-def load_decks_from_package(apkg_filepath: str) -> List[Deck]:
+def load_decks_from_package(apkg_filepath: str) -> list[Deck]:
     """
     A custom extension to the genanki library that allows for the loading of Anki decks from .apkg
     files. Should look into submitting a pull request to the genanki library to add this
@@ -23,15 +23,15 @@ def load_decks_from_package(apkg_filepath: str) -> List[Deck]:
     # Fetch Decks
     cursor.execute("SELECT decks FROM col")
     decks_json = cursor.fetchone()[0]
-    decks_data: Dict[str, Dict[str, Any]] = json.loads(decks_json)
+    decks_data: dict[str, dict[str, Any]] = json.loads(decks_json)
 
     # Fetch Models
     cursor.execute("SELECT models FROM col")
     models_json = cursor.fetchone()[0]
-    models_data: Dict[str, Dict[str, Any]] = json.loads(models_json)
+    models_data: dict[str, dict[str, Any]] = json.loads(models_json)
 
     # Create Deck Objects
-    loaded_decks: List[Deck] = []
+    loaded_decks: list[Deck] = []
     for deck_id, deck_info in decks_data.items():
         if deck_id == "1":
             continue

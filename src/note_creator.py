@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 
 from genanki import Model as AnkiModel
 from genanki import Note as AnkiNote
@@ -53,7 +52,7 @@ class NoteCreator:
         self.rate_limit_handling_event = asyncio.Event()
         self.semaphore = asyncio.Semaphore(concurrency_limit)
 
-    def _combine_sentences(self, sentences: List[str]) -> str:
+    def _combine_sentences(self, sentences: list[str]) -> str:
         """
         Combines a list of sentences into a single string, with each sentence on a new line and
         prefixed with its index.
@@ -104,7 +103,7 @@ class NoteCreator:
             fields=list(field_dict.values()),
         )
 
-    async def create_notes(self, word_to_translate: str) -> List[AnkiNote]:
+    async def create_notes(self, word_to_translate: str) -> list[AnkiNote]:
         """
         Creates a list of AnkiNote objects from a given word. This method coordinates the process of
         getting from a word to a list of Anki notes, by first using a Dictionary to retrieve a list
@@ -114,7 +113,7 @@ class NoteCreator:
         translations = await self.dictionary.translate(word_to_translate)
         return [self._create_note_from_translation(t) for t in translations]
 
-    async def rate_limited_create_notes(self, word_to_translate: str) -> List[AnkiNote]:
+    async def rate_limited_create_notes(self, word_to_translate: str) -> list[AnkiNote]:
         """
         A wrapper and interface for the note creation method create_notes. This wrapper method
         provides rate limiting functionality, allowing only a certain number of coroutines to access

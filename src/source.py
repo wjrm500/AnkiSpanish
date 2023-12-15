@@ -1,7 +1,6 @@
 import abc
 import csv
 import os
-from typing import List
 
 from genanki import Model as AnkiModel
 from genanki import Note as AnkiNote
@@ -13,7 +12,7 @@ class Source(abc.ABC):
     """An abstract base class that represents a source of words to be translated."""
 
     @abc.abstractmethod
-    def get_words_to_translate(self) -> List[str]:
+    def get_words_to_translate(self) -> list[str]:
         """Abstract method to get a list of words from the source."""
         raise NotImplementedError
 
@@ -21,12 +20,12 @@ class Source(abc.ABC):
 class SimpleSource(Source):
     """Source class for getting words from a simple list"""
 
-    words: List[str]
+    words: list[str]
 
-    def __init__(self, words: List[str]) -> None:
+    def __init__(self, words: list[str]) -> None:
         self.words = words
 
-    def get_words_to_translate(self) -> List[str]:
+    def get_words_to_translate(self) -> list[str]:
         """Simply returns a de-duplicated list of the words provided to the constructor."""
         return list(set(self.words))
 
@@ -47,7 +46,7 @@ class AnkiPackageSource(Source):
         self.deck_name = deck_name
         self.field_name = field_name
 
-    def get_words_to_translate(self) -> List[str]:
+    def get_words_to_translate(self) -> list[str]:
         """
         Gets words from an Anki package. The words are extracted from the specified deck, and the
         field name is used to determine which field to get the words from for each note.
@@ -85,7 +84,7 @@ class CSVSource(Source):
         self.file_path = file_path
         self.col_num = col_num
 
-    def get_words_to_translate(self) -> List[str]:
+    def get_words_to_translate(self) -> list[str]:
         """
         Gets a list of words from a CSV file. The CSV file should have one word per row, with the
         word in the first column.

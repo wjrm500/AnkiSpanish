@@ -6,7 +6,7 @@ import os
 import re
 import urllib.parse
 from http import HTTPStatus
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import aiohttp
 import async_lru
@@ -27,7 +27,7 @@ class Retriever(abc.ABC):
     into a standardised representation.
     """
 
-    available_language_pairs: List[Tuple[Language, Language]] = []
+    available_language_pairs: list[tuple[Language, Language]] = []
     base_url: str
     concise_mode: bool = False
     language_from: Language
@@ -83,7 +83,7 @@ class Retriever(abc.ABC):
         return text.strip().lower()
 
     @abc.abstractmethod
-    async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
+    async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         """Retrieves translations for a given word."""
         raise NotImplementedError()
 
@@ -93,7 +93,7 @@ class RetrieverFactory:
     def create_retriever(
         retriever_type: str, language_from: Language, language_to: Language
     ) -> Retriever:
-        retrievers: List[type[Retriever]] = [
+        retrievers: list[type[Retriever]] = [
             CollinsSpanishWebsiteScraper,
             OpenAIAPIRetriever,
             SpanishDictWebsiteScraper,
@@ -135,7 +135,7 @@ class APIRetriever(Retriever, abc.ABC):
 
 
 class OpenAIAPIRetriever(APIRetriever):
-    available_language_pairs: List[Tuple[Language, Language]] = [
+    available_language_pairs: list[tuple[Language, Language]] = [
         (Language.ENGLISH, Language.SPANISH),
         (Language.SPANISH, Language.ENGLISH),
     ]
@@ -179,7 +179,7 @@ class OpenAIAPIRetriever(APIRetriever):
             except ValueError:
                 print("Invalid model, please try again.")
 
-    async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
+    async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         if not self.language_from:
             self.set_language_from()
         if not self.model:
@@ -196,7 +196,7 @@ class OpenAIAPIRetriever(APIRetriever):
         self.requests_made += 1
         if not (content := response.choices[0].message.content):
             return []
-        response_json: Dict[str, Any] = json.loads(content)
+        response_json: dict[str, Any] = json.loads(content)
         translation_dicts = response_json["translations"]
         translations = []
         for translation_dict in translation_dicts:
@@ -226,7 +226,7 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
     by searching the online dictionary for the Spanish word.
     """
 
-    available_language_pairs: List[Tuple[Language, Language]] = [
+    available_language_pairs: list[tuple[Language, Language]] = [
         (Language.ENGLISH, Language.SPANISH),
         (Language.SPANISH, Language.ENGLISH),
     ]
@@ -262,8 +262,8 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
             .find(["a", "span"])  # type: ignore
             .text
         )
-        definition_divs: List[Tag] = part_of_speech_div.find_all(class_="tmBfjszm")
-        definitions: List[Definition] = []
+        definition_divs: list[Tag] = part_of_speech_div.find_all(class_="tmBfjszm")
+        definitions: list[Definition] = []
         for definition_div in definition_divs:
             signal_tag = definition_div.find("a")
             if not signal_tag:  # E.g., "no direct translation" has no hyperlink
@@ -300,7 +300,7 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
             return None
         return Translation(self, word_to_translate, part_of_speech, unique_definitions)
 
-    async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
+    async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         """
         Retrieves translations for a given word by accessing the dictionary page for the word, and
         then creating a separate Translation object for each part of speech listed in the
@@ -321,7 +321,7 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
         part_of_speech_divs = dictionary_neodict_div.find_all(  # type: ignore[union-attr]
             class_="W4_X2sG1"
         )
-        all_translations: List[Translation] = []
+        all_translations: list[Translation] = []
         for part_of_speech_div in part_of_speech_divs:
             translation = self._get_translation_from_part_of_speech_div(
                 word_to_translate, part_of_speech_div
@@ -348,14 +348,14 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
 
 
 class CollinsSpanishWebsiteScraper(WebsiteScraper):
-    available_language_pairs: List[Tuple[Language, Language]] = [
+    available_language_pairs: list[tuple[Language, Language]] = [
         (Language.ENGLISH, Language.SPANISH),
         (Language.SPANISH, Language.ENGLISH),
     ]
     base_url = "https://www.collinsdictionary.com/dictionary/spanish-english"
     lookup_key = "collinsspanish"
 
-    async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
+    async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         # TODO: Implement
         return []
 

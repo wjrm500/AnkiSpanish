@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -17,7 +16,7 @@ def deck_id() -> int:
 
 
 @pytest.fixture
-def field_keys() -> List[str]:
+def field_keys() -> list[str]:
     return [
         "deck_id",
         "word_to_translate",
@@ -30,7 +29,7 @@ def field_keys() -> List[str]:
 
 
 @pytest.fixture
-def field_values(deck_id: int) -> List[str]:
+def field_values(deck_id: int) -> list[str]:
     return [
         str(deck_id),
         "prueba",
@@ -81,7 +80,7 @@ def test_combine_sentences_multiple_sentences(note_creator: NoteCreator) -> None
 
 
 def test_create_note_from_translation(
-    field_values: List[str], note_creator: NoteCreator, translation: Translation
+    field_values: list[str], note_creator: NoteCreator, translation: Translation
 ) -> None:
     note = note_creator._create_note_from_translation(translation)
     assert note.fields == field_values
@@ -89,7 +88,7 @@ def test_create_note_from_translation(
 
 @pytest.mark.asyncio
 async def test_create_notes(
-    field_values: List[str], note_creator: NoteCreator, translation: Translation
+    field_values: list[str], note_creator: NoteCreator, translation: Translation
 ) -> None:
     note_creator.dictionary.translate.return_value = [translation]
     notes = await note_creator.create_notes("test")
@@ -99,7 +98,7 @@ async def test_create_notes(
 
 @pytest.mark.asyncio
 async def test_rate_limited_create_notes(
-    field_values: List[str], note_creator: NoteCreator, translation: Translation
+    field_values: list[str], note_creator: NoteCreator, translation: Translation
 ) -> None:
     note_creator.dictionary.translate.return_value = [translation]
     notes = await note_creator.rate_limited_create_notes("prueba")
@@ -109,7 +108,7 @@ async def test_rate_limited_create_notes(
 
 @pytest.mark.asyncio
 async def test_rate_limited_create_notes_with_rate_limit_exception(
-    field_values: List[str], note_creator: NoteCreator, translation: Translation
+    field_values: list[str], note_creator: NoteCreator, translation: Translation
 ) -> None:
     asyncio.sleep = AsyncMock()
     note_creator.dictionary.retriever.rate_limited = AsyncMock(return_value=False)

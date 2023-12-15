@@ -1,7 +1,6 @@
 import json
 from http import HTTPStatus
 from types import SimpleNamespace
-from typing import List, Tuple
 from unittest.mock import AsyncMock
 
 import pytest
@@ -28,12 +27,12 @@ def mock_url() -> str:
 @pytest.fixture
 def mock_retriever(mock_url: str) -> Retriever:
     class TestRetriever(Retriever):
-        available_language_pairs: List[Tuple[Language, Language]] = [
+        available_language_pairs: list[tuple[Language, Language]] = [
             (Language.SPANISH, Language.ENGLISH)
         ]
         base_url: str = mock_url
 
-        async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
+        async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
             return []
 
     return TestRetriever(language_from=Language.SPANISH, language_to=Language.ENGLISH)
@@ -42,12 +41,12 @@ def mock_retriever(mock_url: str) -> Retriever:
 @pytest.fixture
 def mock_website_scraper(mock_url: str) -> WebsiteScraper:
     class TestWebsiteScraper(WebsiteScraper):
-        available_language_pairs: List[Tuple[Language, Language]] = [
+        available_language_pairs: list[tuple[Language, Language]] = [
             (Language.SPANISH, Language.ENGLISH)
         ]
         base_url: str = mock_url
 
-        async def retrieve_translations(self, word_to_translate: str) -> List[Translation]:
+        async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
             return []
 
     return TestWebsiteScraper(language_from=Language.SPANISH, language_to=Language.ENGLISH)

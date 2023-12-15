@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 from language_element import Translation
 from retriever import Retriever
 
@@ -12,7 +10,7 @@ class Dictionary:
     """
 
     retriever: Retriever | None
-    words: Dict[str, List[Translation]]
+    words: dict[str, list[Translation]]
 
     def __init__(self, retriever: Retriever | None = None) -> None:
         self.retriever = retriever
@@ -23,7 +21,7 @@ class Dictionary:
     dictionary, it uses the Retriever to retrieve a list of translations.
     """
 
-    async def translate(self, word: str) -> List[Translation]:
+    async def translate(self, word: str) -> list[Translation]:
         if word not in self.words:
             if self.retriever is None:
                 return []

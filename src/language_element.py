@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from constant import PrintColour as PC
 from synonym import SynonymChecker
 
@@ -75,7 +73,7 @@ class Definition:
     """
 
     text: str
-    sentence_pairs: List[SentencePair]
+    sentence_pairs: list[SentencePair]
     translation: "Translation"
 
     def __eq__(self, other: object) -> bool:
@@ -89,7 +87,7 @@ class Definition:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(text={self.text})"
 
-    def __init__(self, text: str, sentence_pairs: List[SentencePair]) -> None:
+    def __init__(self, text: str, sentence_pairs: list[SentencePair]) -> None:
         if not text:
             raise ValueError("Text cannot be empty.")
         if not sentence_pairs:
@@ -128,7 +126,7 @@ class Translation:
     retriever: "Retriever"  # type: ignore  # noqa: F821
     word_to_translate: str
     part_of_speech: str
-    definitions: List[Definition]
+    definitions: list[Definition]
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Translation):
@@ -150,7 +148,7 @@ class Translation:
         retriever: "Retriever",  # type: ignore  # noqa: F821
         word_to_translate: str,
         part_of_speech: str,
-        definitions: List[Definition],
+        definitions: list[Definition],
         max_definitions: int = 3,
     ) -> None:
         if not word_to_translate:

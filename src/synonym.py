@@ -1,5 +1,4 @@
 import argparse
-from typing import List, Set
 
 from nltk.corpus import wordnet
 from nltk.corpus.reader.wordnet import Lemma, Synset
@@ -9,7 +8,7 @@ class SynonymChecker:
     """A class with various methods related to checking if words are synonyms."""
 
     @staticmethod
-    def get_synonyms(word: str, pos: str = "n") -> Set[str]:
+    def get_synonyms(word: str, pos: str = "n") -> set[str]:
         """Returns a set of synonyms for the given word."""
         synonyms = set()
         for synset in wordnet.synsets(word, pos=pos):
@@ -27,7 +26,7 @@ class SynonymChecker:
         return bool(synonyms_word1 & synonyms_word2)
 
     @staticmethod
-    def mark_synonymous_words(words: List[str], pos: str = "n") -> List[int]:
+    def mark_synonymous_words(words: list[str], pos: str = "n") -> list[int]:
         """
         Returns a list of marks, where a mark of 1 indicates that the corresponding word is
         synonymous with an earlier word in the list.

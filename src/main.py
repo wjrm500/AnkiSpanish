@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import random
-from typing import List
 
 from genanki import Deck as AnkiDeck
 from genanki import Note as AnkiNote
@@ -17,7 +16,7 @@ from source import AnkiPackageSource, CSVSource, SimpleSource, Source
 
 
 async def main(
-    words_to_translate: List[str],
+    words_to_translate: list[str],
     retriever: Retriever,
     concurrency_limit: int = 1,
     note_limit: int = 0,
@@ -35,7 +34,7 @@ async def main(
     deck_id = random.randint(1_000_000_000, 5_000_000_000)
     note_creator = NoteCreator(deck_id, dictionary, concurrency_limit)
     logger.info(f"Processing {len(words_to_translate)} words")
-    tasks: List[asyncio.Task[List[AnkiNote]]] = []
+    tasks: list[asyncio.Task[list[AnkiNote]]] = []
     for word_to_translate in words_to_translate:
         coro = note_creator.rate_limited_create_notes(word_to_translate)
         task = asyncio.create_task(coro)
@@ -43,10 +42,10 @@ async def main(
 
     max_word_length = max([len(word) for word in words_to_translate])
     words_processed, notes_to_create = 0, 0
-    all_new_notes: List[AnkiNote] = []
+    all_new_notes: list[AnkiNote] = []
     try:
         for completed_task in asyncio.as_completed(tasks):
-            new_notes: List[AnkiNote] = await completed_task
+            new_notes: list[AnkiNote] = await completed_task
             words_processed += 1
             if not new_notes:
                 continue

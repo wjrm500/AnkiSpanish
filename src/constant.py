@@ -1,5 +1,4 @@
 import enum
-from typing import List
 
 
 class PrintColour(enum.Enum):
@@ -20,7 +19,7 @@ class Language(enum.Enum):
     SPANISH = "spanish"
 
     @staticmethod
-    def options() -> List[str]:
+    def options() -> list[str]:
         return [v.value for v in Language.__members__.values()]
 
 
@@ -29,7 +28,7 @@ class OpenAIModel(enum.Enum):
     GPT_4_TURBO = "gpt-4-1106-preview"
 
     @staticmethod
-    def options() -> List[str]:
+    def options() -> list[str]:
         return [v.value for v in OpenAIModel.__members__.values()]
 
 
