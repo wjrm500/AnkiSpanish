@@ -1,11 +1,15 @@
 import pytest
+import os
 
 from genanki_extension import load_decks_from_package
+
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+TEST_GENANKI_EXTENSION_DIR = SCRIPT_DIR + "/data/test_genanki_extension/"
 
 
 @pytest.fixture
 def apkg_file_path() -> str:
-    return "./test/data/freq_dict.apkg"
+    return TEST_GENANKI_EXTENSION_DIR + "freq_dict.apkg"
 
 
 def test_load_decks_from_package_success(apkg_file_path: str) -> None:

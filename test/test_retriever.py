@@ -20,7 +20,7 @@ from retriever import (
 )
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-TEST_HTML_DIR = SCRIPT_DIR + "/data/html/"
+TEST_RETRIEVER_DIR = SCRIPT_DIR + "/data/test_retriever/"
 
 
 @pytest.fixture
@@ -125,7 +125,7 @@ def spanish_dict_url(test_word: str) -> str:
 
 @pytest.fixture
 def spanish_dict_html() -> str:
-    with open(TEST_HTML_DIR + "spanish_dict_website_scraper_test.html", encoding="utf-8") as fh:
+    with open(TEST_RETRIEVER_DIR + "spanish_dict_website_scraper_test.html", encoding="utf-8") as fh:
         return fh.read()
 
 
@@ -377,7 +377,7 @@ def collins_url(test_word: str) -> str:
 
 @pytest.mark.asyncio
 async def test_collins_website_scraper(test_word: str, collins_url: str) -> None:
-    with open(TEST_HTML_DIR + "collins_website_scraper_test.html", encoding="utf-8") as fh:
+    with open(TEST_RETRIEVER_DIR + "collins_website_scraper_test.html", encoding="utf-8") as fh:
         mock_html = fh.read()
     retriever = CollinsWebsiteScraper(language_from=Language.SPANISH, language_to=Language.ENGLISH)
     with aioresponses() as m:
