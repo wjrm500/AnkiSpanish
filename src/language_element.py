@@ -90,13 +90,13 @@ class Definition:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(text={self.text})"
 
-    def __init__(self, text: str, sentence_pairs: list[SentencePair]) -> None:
+    def __init__(self, text: str, sentence_pairs: list[SentencePair], max_sentence_pairs: int = 3) -> None:
         if not text:
             raise ValueError("Text cannot be empty.")
         if not sentence_pairs:
             raise ValueError("Sentence pairs cannot be empty.")
         self.text = text
-        self.sentence_pairs = sentence_pairs
+        self.sentence_pairs = sentence_pairs[:max_sentence_pairs]
         for sentence_pair in self.sentence_pairs:
             sentence_pair.set_definition(self)
 
