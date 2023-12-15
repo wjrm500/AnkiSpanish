@@ -111,6 +111,9 @@ class NoteCreator:
         Translation object into an AnkiNote object.
         """
         translations = await self.dictionary.translate(word_to_translate)
+        if not translations:
+            logger.warning(f"No translations found for '{word_to_translate}'")
+            return []
         return [self._create_note_from_translation(t) for t in translations]
 
     async def rate_limited_create_notes(self, word_to_translate: str) -> list[AnkiNote]:
