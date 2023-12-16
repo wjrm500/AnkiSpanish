@@ -30,9 +30,12 @@ async def main(
     if not words_to_translate:
         logger.warning("No words to translate, exiting")
         return
-    dictionary = Dictionary(retriever)
     deck_id = random.randint(1_000_000_000, 5_000_000_000)
-    note_creator = NoteCreator(deck_id, dictionary, concurrency_limit)
+    note_creator = NoteCreator(
+        deck_id=deck_id,
+        dictionary=Dictionary(retriever=retriever),
+        concurrency_limit=concurrency_limit
+    )
     logger.info(f"Processing {len(words_to_translate)} words")
     tasks: list[asyncio.Task[list[AnkiNote]]] = []
     for word_to_translate in words_to_translate:
@@ -159,7 +162,7 @@ if __name__ == "__main__":
 
     source: Source
     if args.words:
-        source = SimpleSource(args.words)
+        source = SimpleSource(words_to_translate=args.words)
     elif args.input_anki_package_path:
         source = AnkiPackageSource(
             package_path=args.input_anki_package_path,
@@ -167,7 +170,7 @@ if __name__ == "__main__":
             field_name=args.input_anki_field_name,
         )
     elif args.csv:
-        source = CSVSource(args.csv)
+        source = CSVSource(file_path=args.csv)
     else:
         logger.error("Must provide either --words, --anki-package-path or --csv")
         exit(1)

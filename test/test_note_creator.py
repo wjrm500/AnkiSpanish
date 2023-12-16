@@ -51,9 +51,11 @@ def retriever() -> Retriever:
 
 @pytest.fixture
 def note_creator(deck_id: int, retriever: Retriever) -> NoteCreator:
-    dictionary = MagicMock(spec=Dictionary)
-    dictionary.retriever = retriever
-    return NoteCreator(deck_id, dictionary, concurrency_limit=1)
+    return NoteCreator(
+        deck_id=deck_id,
+        dictionary=MagicMock(spec=Dictionary, retriever=retriever),
+        concurrency_limit=1
+    )
 
 
 @pytest.fixture
