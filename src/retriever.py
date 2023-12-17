@@ -122,6 +122,7 @@ class WebsiteScraper(Retriever, abc.ABC):
             await self.start_session()
         assert self.session
         async with self.session.get(url) as response:
+            logger.debug(f"GET request made to {url}")
             self.requests_made += 1
             if response.status == HTTPStatus.TOO_MANY_REQUESTS:
                 raise RateLimitException()
