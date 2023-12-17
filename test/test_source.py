@@ -20,8 +20,7 @@ def test_anki_package_source() -> None:
 
 def test_anki_package_source_with_incorrect_deck_name() -> None:
     source = AnkiPackageSource(
-        package_path=TEST_SOURCE_DIR + "populated_deck.apkg",
-        deck_name="Incorrect deck name"
+        package_path=TEST_SOURCE_DIR + "populated_deck.apkg", deck_name="Incorrect deck name"
     )
     with pytest.raises(ValueError) as e_info:
         source.get_words_to_translate()
@@ -37,8 +36,7 @@ def test_anki_package_source_with_empty_deck() -> None:
 
 def test_anki_package_source_with_incorrect_field_name() -> None:
     source = AnkiPackageSource(
-        package_path=TEST_SOURCE_DIR + "populated_deck.apkg",
-        field_name="Incorrect field name"
+        package_path=TEST_SOURCE_DIR + "populated_deck.apkg", field_name="Incorrect field name"
     )
     with pytest.raises(ValueError) as e_info:
         source.get_words_to_translate()

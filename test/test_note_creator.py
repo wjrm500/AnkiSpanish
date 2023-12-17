@@ -54,7 +54,7 @@ def note_creator(deck_id: int, retriever: Retriever) -> NoteCreator:
     return NoteCreator(
         deck_id=deck_id,
         dictionary=MagicMock(spec=Dictionary, retriever=retriever),
-        concurrency_limit=1
+        concurrency_limit=1,
     )
 
 

@@ -83,20 +83,28 @@ def test_standardize(mock_retriever: Retriever) -> None:
 
 def test_retriever_factory():
     openai_retriever = RetrieverFactory.create_retriever(
-        "openai", language_from=Language.SPANISH, language_to=Language.ENGLISH
+        retriever_type=OpenAIAPIRetriever.lookup_key,
+        language_from=Language.SPANISH,
+        language_to=Language.ENGLISH,
     )
     assert isinstance(openai_retriever, OpenAIAPIRetriever)
     collins_retriever = RetrieverFactory.create_retriever(
-        "collins", language_from=Language.SPANISH, language_to=Language.ENGLISH
+        retriever_type=CollinsWebsiteScraper.lookup_key,
+        language_from=Language.SPANISH,
+        language_to=Language.ENGLISH,
     )
     assert isinstance(collins_retriever, CollinsWebsiteScraper)
     spanishdict_retriever = RetrieverFactory.create_retriever(
-        "spanishdict", language_from=Language.SPANISH, language_to=Language.ENGLISH
+        retriever_type=SpanishDictWebsiteScraper.lookup_key,
+        language_from=Language.SPANISH,
+        language_to=Language.ENGLISH,
     )
     assert isinstance(spanishdict_retriever, SpanishDictWebsiteScraper)
     with pytest.raises(ValueError):
         RetrieverFactory.create_retriever(
-            "unknown", language_from=Language.SPANISH, language_to=Language.ENGLISH
+            retriever_type="unknown",
+            language_from=Language.SPANISH,
+            language_to=Language.ENGLISH,
         )
 
 

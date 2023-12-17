@@ -34,7 +34,7 @@ async def main(
     note_creator = NoteCreator(
         deck_id=deck_id,
         dictionary=Dictionary(retriever=retriever),
-        concurrency_limit=concurrency_limit
+        concurrency_limit=concurrency_limit,
     )
     logger.info(f"Processing {len(words_to_translate)} words")
     tasks: list[asyncio.Task[list[AnkiNote]]] = []
@@ -178,7 +178,9 @@ if __name__ == "__main__":
 
     try:
         retriever = RetrieverFactory.create_retriever(
-            args.retriever_type, args.language_from, args.language_to
+            retriever_type=args.retriever_type,
+            language_from=args.language_from,
+            language_to=args.language_to,
         )
     except ValueError as e:
         logger.error(e)
