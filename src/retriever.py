@@ -18,6 +18,7 @@ from openai import AsyncOpenAI
 from constant import OPEN_AI_SYSTEM_PROMPT, Language, OpenAIModel
 from exception import RateLimitException
 from language_element import Definition, SentencePair, Translation
+from log import logger
 
 
 class Retriever(abc.ABC):
@@ -36,9 +37,12 @@ class Retriever(abc.ABC):
     requests_made: int = 0
     session: aiohttp.ClientSession | None = None
 
-    def __init__(self, language_from: Language, language_to: Language) -> None:
+    def __init__(
+        self, language_from: Language, language_to: Language, concise_mode: bool = False
+    ) -> None:
         self.language_from = language_from
         self.language_to = language_to
+        self.concise_mode = concise_mode
         if (self.language_from, self.language_to) not in self.available_language_pairs:
             raise ValueError(
                 f"Language pair {self.language_from.value} -> {self.language_to.value} not supported by the {self.__class__.__name__} retriever"  # noqa: E501
@@ -91,7 +95,10 @@ class Retriever(abc.ABC):
 class RetrieverFactory:
     @staticmethod
     def create_retriever(
-        retriever_type: str, language_from: Language, language_to: Language
+        retriever_type: str,
+        language_from: Language,
+        language_to: Language,
+        concise_mode: bool = False,
     ) -> Retriever:
         retrievers: list[type[Retriever]] = [
             CollinsWebsiteScraper,
@@ -100,7 +107,7 @@ class RetrieverFactory:
         ]
         for retriever in retrievers:
             if retriever.lookup_key == retriever_type:
-                return retriever(language_from, language_to)
+                return retriever(language_from, language_to, concise_mode)
         raise ValueError(f"Unknown retriever type: {retriever_type}")
 
 
@@ -144,7 +151,9 @@ class OpenAIAPIRetriever(APIRetriever):
     lookup_key = "openai"
     model: OpenAIModel | None = None
 
-    def __init__(self, language_from: Language, language_to: Language) -> None:
+    def __init__(
+        self, language_from: Language, language_to: Language, concise_mode: bool = False
+    ) -> None:
         super().__init__(language_from=language_from, language_to=language_to)
         load_dotenv()
         self.api_key = os.getenv("OPENAI_API_KEY")
@@ -210,13 +219,18 @@ class OpenAIAPIRetriever(APIRetriever):
                         target_sentence=sentence_pair_dict["target_sentence"],
                     )
                     sentence_pairs.append(sentence_pair)
-                definition = Definition(text=definition_dict["text"], sentence_pairs=sentence_pairs)
+                definition = Definition(
+                    text=definition_dict["text"],
+                    sentence_pairs=sentence_pairs,
+                    max_sentence_pairs=(1 if self.concise_mode else 3),
+                )
                 definitions.append(definition)
             translation = Translation(
                 retriever=self,
                 word_to_translate=translation_dict["word_to_translate"],
                 part_of_speech=translation_dict["part_of_speech"],
                 definitions=definitions,
+                max_definitions=(1 if self.concise_mode else 3),
             )
             translations.append(translation)
         return translations
@@ -287,7 +301,11 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
                 sentence_pairs.append(sentence_pair)
             if not sentence_pairs:
                 continue
-            definition = Definition(text=text, sentence_pairs=sentence_pairs)
+            definition = Definition(
+                text=text,
+                sentence_pairs=sentence_pairs,
+                max_sentence_pairs=(1 if self.concise_mode else 3),
+            )
             definitions.append(definition)
         if not definitions:
             return None
@@ -296,7 +314,7 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
             word_to_translate=word_to_translate,
             part_of_speech=part_of_speech,
             definitions=definitions,
-        )
+        )  # Don't want to specify max_definitions as quickdef definitions may be lost
 
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         """
@@ -387,7 +405,11 @@ class CollinsWebsiteScraper(WebsiteScraper):
                 sentence_pairs.append(sentence_pair)
             if not sentence_pairs:
                 continue
-            definition = Definition(text=text, sentence_pairs=sentence_pairs)
+            definition = Definition(
+                text=text,
+                sentence_pairs=sentence_pairs,
+                max_sentence_pairs=(1 if self.concise_mode else 3),
+            )
             definitions.append(definition)
         if not definitions:
             return None
@@ -396,6 +418,7 @@ class CollinsWebsiteScraper(WebsiteScraper):
             word_to_translate=word_to_translate,
             part_of_speech=part_of_speech,
             definitions=definitions,
+            max_definitions=(1 if self.concise_mode else 3),
         )
 
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
@@ -518,6 +541,7 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
                                 source_sentence=frex_div.text, target_sentence=toex_div.text
                             )
                         ],
+                        max_sentence_pairs=(1 if self.concise_mode else 3),
                     )
                     definition_dict[definition_text] = definition
                     if self.concise_mode:
@@ -533,6 +557,7 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
                 word_to_translate=word_to_translate,
                 part_of_speech=part_of_speech,
                 definitions=list(definition_dict.values()),
+                max_definitions=(1 if self.concise_mode else 3),
             )
             translations.append(translation)
             if self.concise_mode:
@@ -541,15 +566,22 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
 
 
 async def main(
-    word_to_translate: str = "hola", retriever_type: str = SpanishDictWebsiteScraper.lookup_key
+    word_to_translate: str = "hello",
+    language_from: Language = Language.ENGLISH,
+    language_to: Language = Language.SPANISH,
+    retriever_type: str = SpanishDictWebsiteScraper.lookup_key,
+    concise_mode: bool = False,
 ) -> None:
     """
-    A demonstration of the SpanishDictWebsiteScraper class. The Spanish word "hola" is used by
-    default, but another word can be specified using the spanish_word argument.
+    A demonstration of the Retriever class. By default, this function translates the word "hello"
+    from English to Spanish using the SpanishDictWebsiteScraper class.
     """
-    print(f"Word to translate: {word_to_translate}\n")
+    print(f"Word to translate: {word_to_translate}")
+    print("")
     retriever = RetrieverFactory.create_retriever(
-        retriever_type, Language.ENGLISH, Language.SPANISH
+        retriever_type=retriever_type,
+        language_from=language_from,
+        language_to=language_to,
     )
     translations = await retriever.retrieve_translations(word_to_translate)
     for translation in translations:
@@ -560,9 +592,35 @@ async def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Translate words by scraping online dictionaries.")
-    parser.add_argument("--word", type=str, default="hola", help="Word to translate")
+    parser.add_argument("--word", type=str, default="hello", help="Word to translate")
     parser.add_argument(
-        "--retriever-type", type=str, default="spanishdict", help="Retriever type to use"
+        "--language-from",
+        type=Language,
+        default=Language.ENGLISH,
+        help="Language to translate from",
+        choices=list(Language),
+    )
+    parser.add_argument(
+        "--language-to",
+        type=Language,
+        default=Language.SPANISH,
+        help="Language to translate to",
+        choices=list(Language),
+    )
+    parser.add_argument(
+        "--retriever-type",
+        type=str,
+        default=SpanishDictWebsiteScraper.lookup_key,
+        help="Retriever type to use",
+    )
+    parser.add_argument(
+        "--concise-mode",
+        action="store_true",
+        help="Concise mode changes the behaviour of the retriever to find the key definitions and remove any translations or definitions that don't correspond with these, typically leading to a smaller deck with more concise flashcards.",  # noqa: E501
     )
     args = parser.parse_args()
-    asyncio.run(main(args.word, args.retriever_type))
+    asyncio.run(
+        main(
+            args.word, args.language_from, args.language_to, args.retriever_type, args.concise_mode
+        )
+    )

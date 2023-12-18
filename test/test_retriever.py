@@ -248,14 +248,6 @@ async def test_spanish_dict_website_scraper_concise_mode(
                                     source_sentence="Hay una prueba de matemáticas el miércoles.",
                                     target_sentence="There's a math test on Wednesday.",
                                 ),
-                                SentencePair(
-                                    source_sentence="No pasó la prueba de acceso y tiene que tomar cursos de regularización.",  # noqa: E501
-                                    target_sentence="He didn't pass the entrance examination and has to take remedial courses.",  # noqa: E501
-                                ),
-                                SentencePair(
-                                    source_sentence="Nos han dado una prueba para hacer en casa.",
-                                    target_sentence="We've been given a quiz to do at home.",
-                                ),
                             ],
                         ),
                         Definition(
@@ -264,14 +256,6 @@ async def test_spanish_dict_website_scraper_concise_mode(
                                 SentencePair(
                                     source_sentence="La carta fue la prueba de que su historia era cierta.",  # noqa: E501
                                     target_sentence="The letter was proof that her story was true.",
-                                ),
-                                SentencePair(
-                                    source_sentence="Te doy este anillo como prueba de mi amor.",
-                                    target_sentence="I give you this ring as a token of my love.",
-                                ),
-                                SentencePair(
-                                    source_sentence="Su risa fue la prueba de que ya no estaba enojada.",  # noqa: E501
-                                    target_sentence="Her laugh was a sign that she was no longer mad.",  # noqa: E501
                                 ),
                             ],
                         ),
@@ -304,14 +288,6 @@ async def test_spanish_dict_website_scraper_concise_mode(
                                 SentencePair(
                                     source_sentence="Hay una prueba de matemáticas el miércoles.",
                                     target_sentence="There's a math test on Wednesday.",
-                                ),
-                                SentencePair(
-                                    source_sentence="No pasó la prueba de acceso y tiene que tomar cursos de regularización.",  # noqa: E501
-                                    target_sentence="He didn't pass the entrance examination and has to take remedial courses.",  # noqa: E501
-                                ),
-                                SentencePair(
-                                    source_sentence="Nos han dado una prueba para hacer en casa.",
-                                    target_sentence="We've been given a quiz to do at home.",
                                 ),
                             ],
                         ),

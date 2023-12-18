@@ -181,11 +181,11 @@ if __name__ == "__main__":
             retriever_type=args.retriever_type,
             language_from=args.language_from,
             language_to=args.language_to,
+            concise_mode=args.concise_mode,
         )
     except ValueError as e:
         logger.error(e)
         exit(1)
-    retriever.concise_mode = args.concise_mode
 
     if args.verbose:
         logger.setLevel(DEBUG)
