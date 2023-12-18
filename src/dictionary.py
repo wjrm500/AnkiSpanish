@@ -10,11 +10,11 @@ class Dictionary:
     """
 
     retriever: Retriever | None
-    words: dict[str, list[Translation]]
+    translations: dict[str, list[Translation]]
 
     def __init__(self, retriever: Retriever | None = None) -> None:
         self.retriever = retriever
-        self.words = {}
+        self.translations = {}
 
     """
     Returns a list of Translation objects for a given word. If the word is not already in the
@@ -22,8 +22,8 @@ class Dictionary:
     """
 
     async def translate(self, word: str) -> list[Translation]:
-        if word not in self.words:
+        if word not in self.translations:
             if self.retriever is None:
                 return []
-            self.words[word] = await self.retriever.retrieve_translations(word)
-        return self.words[word]
+            self.translations[word] = await self.retriever.retrieve_translations(word)
+        return self.translations[word]

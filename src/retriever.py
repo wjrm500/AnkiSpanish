@@ -227,10 +227,10 @@ class OpenAIAPIRetriever(APIRetriever):
                 )
                 definitions.append(definition)
             translation = Translation(
-                retriever=self,
                 word_to_translate=translation_dict["word_to_translate"],
                 part_of_speech=translation_dict["part_of_speech"],
                 definitions=definitions,
+                retriever=self,
                 max_definitions=(1 if self.concise_mode else 3),
             )
             translations.append(translation)
@@ -311,10 +311,10 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
         if not definitions:
             return None
         return Translation(
-            retriever=self,
             word_to_translate=word_to_translate,
             part_of_speech=part_of_speech,
             definitions=definitions,
+            retriever=self,
         )  # Don't want to specify max_definitions as quickdef definitions may be lost
 
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
@@ -415,10 +415,10 @@ class CollinsWebsiteScraper(WebsiteScraper):
         if not definitions:
             return None
         return Translation(
-            retriever=self,
             word_to_translate=word_to_translate,
             part_of_speech=part_of_speech,
             definitions=definitions,
+            retriever=self,
             max_definitions=(1 if self.concise_mode else 3),
         )
 
@@ -554,10 +554,10 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
                     )
                     definition.sentence_pairs.append(sentence_pair)
             translation = Translation(
-                retriever=self,
                 word_to_translate=word_to_translate,
                 part_of_speech=part_of_speech,
                 definitions=list(definition_dict.values()),
+                retriever=self,
                 max_definitions=(1 if self.concise_mode else 3),
             )
             translations.append(translation)

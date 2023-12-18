@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from retriever import Retriever
@@ -113,10 +113,11 @@ class Translation:
     remove_synonymous_definitions: bool = False
 
     # Instance variables
-    retriever: "Retriever"
     word_to_translate: str
     part_of_speech: str
     definitions: list[Definition]
+    retriever: Optional["Retriever"]
+    max_definitions: int
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Translation):
@@ -135,10 +136,10 @@ class Translation:
 
     def __init__(
         self,
-        retriever: "Retriever",
         word_to_translate: str,
         part_of_speech: str,
         definitions: list[Definition],
+        retriever: Optional["Retriever"] = None,
         max_definitions: int = 3,
     ) -> None:
         if not word_to_translate:
@@ -147,9 +148,9 @@ class Translation:
             raise ValueError("Part of speech cannot be empty.")
         if not definitions:
             raise ValueError("Definitions cannot be empty.")
-        self.retriever = retriever
         self.word_to_translate = word_to_translate
         self.part_of_speech = part_of_speech
+        self.retriever = retriever
         self._set_definitions(definitions, max_definitions)
 
     def _set_definitions(self, definitions: list[Definition], max_definitions: int) -> None:

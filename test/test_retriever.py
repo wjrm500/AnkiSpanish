@@ -153,7 +153,6 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
             translations = await retriever.retrieve_translations(test_word)
             assert translations == [
                 Translation(
-                    retriever=retriever,
                     word_to_translate="prueba",
                     part_of_speech="feminine noun",
                     definitions=[
@@ -201,9 +200,9 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
                             ],
                         ),
                     ],
+                    retriever=retriever,
                 ),
                 Translation(
-                    retriever=retriever,
                     word_to_translate="prueba",
                     part_of_speech="plural noun",
                     definitions=[
@@ -217,6 +216,7 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
                             ],
                         )
                     ],
+                    retriever=retriever,
                 ),
             ]
     finally:
@@ -237,7 +237,6 @@ async def test_spanish_dict_website_scraper_concise_mode(
             translations = await retriever.retrieve_translations(test_word)
             assert translations == [
                 Translation(
-                    retriever=retriever,
                     word_to_translate="prueba",
                     part_of_speech="feminine noun",
                     definitions=[
@@ -260,6 +259,7 @@ async def test_spanish_dict_website_scraper_concise_mode(
                             ],
                         ),
                     ],
+                    retriever=retriever,
                 ),
             ]
 
@@ -278,7 +278,6 @@ async def test_spanish_dict_website_scraper_concise_mode(
             translations = await retriever.retrieve_translations(test_word)
             assert translations == [
                 Translation(
-                    retriever=retriever,
                     word_to_translate="prueba",
                     part_of_speech="feminine noun",
                     definitions=[
@@ -292,6 +291,7 @@ async def test_spanish_dict_website_scraper_concise_mode(
                             ],
                         ),
                     ],
+                    retriever=retriever,
                 ),
             ]
     finally:
@@ -338,7 +338,6 @@ async def test_openai_api_retriever() -> None:
     retriever.model = OpenAIModel.GPT_4_TURBO
     translations = await retriever.retrieve_translations("hola")
     expected_translation = Translation(
-        retriever=retriever,
         word_to_translate="hola",
         part_of_speech="interjection",
         definitions=[
@@ -352,6 +351,7 @@ async def test_openai_api_retriever() -> None:
                 ],
             )
         ],
+        retriever=retriever,
     )
     assert translations == [expected_translation]
 
@@ -371,7 +371,6 @@ async def test_collins_website_scraper(test_word: str, collins_url: str) -> None
         translations = await retriever.retrieve_translations(test_word)
         assert translations == [
             Translation(
-                retriever=retriever,
                 word_to_translate="prueba",
                 part_of_speech="feminine noun",
                 definitions=[
@@ -427,5 +426,6 @@ async def test_collins_website_scraper(test_word: str, collins_url: str) -> None
                         ],
                     ),
                 ],
+                retriever=retriever,
             ),
         ]

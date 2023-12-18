@@ -61,7 +61,6 @@ def note_creator(deck_id: int, retriever: Retriever) -> NoteCreator:
 @pytest.fixture
 def translation(retriever: Retriever) -> Translation:
     return Translation(
-        retriever=retriever,
         word_to_translate="prueba",
         part_of_speech="feminine noun",
         definitions=[
@@ -74,6 +73,7 @@ def translation(retriever: Retriever) -> Translation:
                 ],
             ),
         ],
+        retriever=retriever,
     )
 
 

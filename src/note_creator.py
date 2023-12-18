@@ -75,8 +75,12 @@ class NoteCreator:
             target_sentences.append(definition.sentence_pairs[0].target_sentence)
 
         word_to_translate_html = (
-            f"<a href='{lang_from_url}' style='color:red;'>{translation.word_to_translate}</a>"
-            if (lang_from_url := translation.retriever.link(translation.word_to_translate))
+            (
+                f"<a href='{lang_from_url}' style='color:red;'>{translation.word_to_translate}</a>"
+                if (lang_from_url := translation.retriever.link(translation.word_to_translate))
+                else translation.word_to_translate
+            )
+            if translation.retriever
             else translation.word_to_translate
         )
         definition_html = ", ".join(
@@ -86,6 +90,8 @@ class NoteCreator:
                 else definition.text
                 for definition in translation.definitions
             ]
+            if translation.retriever
+            else [definition.text for definition in translation.definitions]
         )
         field_dict = {
             "deck_id": str(
