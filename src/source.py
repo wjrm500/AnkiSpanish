@@ -1,10 +1,12 @@
 import abc
+import argparse
 import csv
 import os
 
 from genanki import Model as AnkiModel
 from genanki import Note as AnkiNote
 
+from constant import PrintColour as PC
 from genanki_extension import load_decks_from_package
 
 
@@ -71,12 +73,12 @@ class AnkiPackageSource(Source):
             raise ValueError(f"Deck '{deck.name}' has no notes")
         signal_note: AnkiNote = deck.notes[0]
         model: AnkiModel = signal_note.model
-        desired_field = next(
-            (f for f in model.fields if f["name"]["name"] == self.field_name), None
-        )
-        if not desired_field:
-            raise ValueError(f"Field '{self.field_name}' not found in model")
-        field_index = model.fields.index(desired_field)
+        model_field_names = [f["name"]["name"] for f in model.fields]
+        if self.field_name not in model_field_names:
+            raise ValueError(
+                f"Field '{self.field_name}' not found in model. Available fields: {model_field_names}"  # noqa: E501
+            )
+        field_index = model_field_names.index(self.field_name)
         words_to_translate = []
         for note in deck.notes:
             assert isinstance(note, AnkiNote)
@@ -105,3 +107,46 @@ class CSVSource(Source):
             for row in reader:
                 words_to_translate.append(row[self.col_num])
         return self._deduplicate(words_to_translate)
+
+
+def main(args: argparse.Namespace) -> None:
+    try:
+        if args.words:
+            source = SimpleSource(words_to_translate=args.words)
+        elif args.anki_package_path and args.anki_deck_name and args.anki_field_name:
+            source = AnkiPackageSource(
+                package_path=args.anki_package_path,
+                deck_name=args.anki_deck_name,
+                field_name=args.anki_field_name,
+            )
+        elif args.csv:
+            source = CSVSource(file_path=args.csv)
+        else:
+            raise argparse.ArgumentError(
+                "Must provide either --words, --anki-package-path, --anki-deck-name and --anki-field-name, or --csv"  # noqa: E501
+            )
+        print(f"Getting words from {source.__class__.__name__}")
+        print()
+        words = source.get_words_to_translate()
+    except Exception as e:
+        print(e)
+        return
+    print(f"{PC.GREEN}Got {len(words)} words{PC.RESET}")
+    print(f"   {PC.YELLOW}{words}{PC.RESET}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Create Anki deck for language learning. Provide either --words, --anki-package-path or --csv as a source of words"  # noqa: E501
+    )
+
+    # Source arguments
+    parser.add_argument("--words", nargs="+", default=[], help="Words to translate")
+    parser.add_argument("--anki-package-path", type=str, default="", help="Path to .apkg")
+    parser.add_argument(
+        "--anki-deck-name", type=str, default="", help="Name of deck inside package"
+    )
+    parser.add_argument("--anki-field-name", type=str, default="", help="Name of field inside note")
+    parser.add_argument("--csv", type=str, default="", help="Path to .csv")
+    args = parser.parse_args()
+    main(args)

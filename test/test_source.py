@@ -40,7 +40,10 @@ def test_anki_package_source_with_incorrect_field_name() -> None:
     )
     with pytest.raises(ValueError) as e_info:
         source.get_words_to_translate()
-    assert str(e_info.value) == "Field 'Incorrect field name' not found in model"
+    assert (
+        str(e_info.value)
+        == "Field 'Incorrect field name' not found in model. Available fields: ['Word', 'Translation']"  # noqa: E501
+    )
 
 
 def test_csv_source() -> None:

@@ -160,21 +160,30 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    source: Source
-    if args.words:
-        source = SimpleSource(words_to_translate=args.words)
-    elif args.input_anki_package_path:
-        source = AnkiPackageSource(
-            package_path=args.input_anki_package_path,
-            deck_name=args.input_anki_deck_name,
-            field_name=args.input_anki_field_name,
-        )
-    elif args.csv:
-        source = CSVSource(file_path=args.csv)
-    else:
-        logger.error("Must provide either --words, --anki-package-path or --csv")
+    try:
+        source: Source
+        if args.words:
+            source = SimpleSource(words_to_translate=args.words)
+        elif (
+            args.input_anki_package_path
+            and args.input_anki_deck_name
+            and args.input_anki_field_name
+        ):
+            source = AnkiPackageSource(
+                package_path=args.input_anki_package_path,
+                deck_name=args.input_anki_deck_name,
+                field_name=args.input_anki_field_name,
+            )
+        elif args.csv:
+            source = CSVSource(file_path=args.csv)
+        else:
+            raise argparse.ArgumentError(
+                "Must provide either --words, --anki-package-path, --anki-deck-name and --anki-field-name, or --csv"  # noqa: E501
+            )
+        words = source.get_words_to_translate()
+    except Exception as e:
+        logger.error(e)
         exit(1)
-    words = source.get_words_to_translate()
 
     try:
         retriever = RetrieverFactory.create_retriever(

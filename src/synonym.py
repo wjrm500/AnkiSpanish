@@ -42,7 +42,7 @@ class SynonymChecker:
         return marks
 
 
-def main(args) -> None:
+def main(args: argparse.Namespace) -> None:
     word_1 = args.words[0]
     word_1_synonyms = SynonymChecker.get_synonyms(word_1, args.pos)
     print(f"Synonyms for {word_1}: {word_1_synonyms}")
