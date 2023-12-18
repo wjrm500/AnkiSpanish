@@ -1,9 +1,13 @@
+import argparse
 import json
+import os
 import sqlite3
 import zipfile
 from typing import Any
 
 from genanki import Deck, Model, Note
+
+from constant import PrintColour as PC
 
 
 def load_decks_from_package(apkg_filepath: str) -> list[Deck]:
@@ -62,6 +66,43 @@ def load_decks_from_package(apkg_filepath: str) -> list[Deck]:
 
 
 if __name__ == "__main__":
-    decks = load_decks_from_package("output.apkg")
-    for deck in decks:
-        print(f"Deck '{deck.name}' has {len(deck.notes)} notes")
+    parser = argparse.ArgumentParser(description="Load Anki decks from .apkg files")
+    parser.add_argument("--apkg-filepath", type=str, help="Path to the .apkg file")
+    parser.add_argument(
+        "--max-display-decks",
+        type=int,
+        default=1,
+        help="Maximum number of decks to display notes from",
+    )
+    parser.add_argument(
+        "--max-display-notes",
+        type=int,
+        default=1,
+        help="Maximum number of notes to display per deck",
+    )
+    parser.add_argument(
+        "--max-display-fields",
+        type=int,
+        default=None,
+        help="Maximum number of fields to display per note",
+    )
+    args = parser.parse_args()
+    try:
+        if not os.path.exists(args.apkg_filepath):
+            raise FileNotFoundError(f"File '{args.apkg_filepath}' does not exist")
+
+        decks = load_decks_from_package(args.apkg_filepath)
+        print(f"Loaded {len(decks)} decks")
+        for deck in decks[: args.max_display_decks]:
+            print(f"Deck '{deck.name}' has {len(deck.notes)} notes")
+            for i, note in enumerate(deck.notes[: args.max_display_notes], 1):
+                field_names = [field["name"]["name"] for field in note.model.fields]
+                field_values = note.fields
+                print(f"   {PC.CYAN}Note #{i}:{PC.RESET}")
+                for field_name, field_value in list(zip(field_names, field_values))[
+                    : args.max_display_fields
+                ]:
+                    print(f"\t{PC.PURPLE}{field_name}{PC.RESET}: {PC.GREEN}{field_value}{PC.RESET}")
+                print()
+    except Exception as e:
+        print(e)
