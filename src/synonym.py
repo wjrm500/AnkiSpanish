@@ -42,11 +42,20 @@ class SynonymChecker:
         return marks
 
 
+def main(args) -> None:
+    word_1 = args.words[0]
+    word_1_synonyms = SynonymChecker.get_synonyms(word_1, args.pos)
+    print(f"Synonyms for {word_1}: {word_1_synonyms}")
+    word_2 = args.words[1]
+    word_2_synonyms = SynonymChecker.get_synonyms(word_2, args.pos)
+    print(f"Synonyms for {word_2}: {word_2_synonyms}")
+    synonymous = SynonymChecker.are_synonymous(args.words[0], args.words[1], args.pos)
+    print(f"Are {word_1} and {word_2} synonymous? {synonymous}")
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Check if words are synonyms")
-    parser.add_argument("--words", nargs=2, dest="words", help="Words to check")
+    parser = argparse.ArgumentParser(description="Check if two words are synonyms")
+    parser.add_argument("--words", nargs=2, required=True, dest="words", help="Words to check")
     parser.add_argument("--pos", dest="pos", help="Part of speech", default="n")
     args = parser.parse_args()
-    word1 = args.words[0] if args.words else input("Enter first word: ")
-    word2 = args.words[1] if args.words else input("Enter second word: ")
-    print(SynonymChecker.are_synonymous(word1, word2, args.pos))
+    main(args)

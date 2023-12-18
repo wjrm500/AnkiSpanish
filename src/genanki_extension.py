@@ -71,7 +71,9 @@ def main(args: argparse.Namespace) -> None:
             raise FileNotFoundError(f"File '{args.apkg_filepath}' does not exist")
 
         decks = load_decks_from_package(args.apkg_filepath)
-        print(f"Loaded {len(decks)} deck{'s' if len(decks) > 1 else ''} from '{args.apkg_filepath}'")  # noqa: E501
+        print(
+            f"Loaded {len(decks)} deck{'s' if len(decks) > 1 else ''} from '{args.apkg_filepath}'"
+        )
         print()
         for deck in decks[: args.max_display_decks]:
             print(f"{PC.GREEN}Deck '{deck.name}' has {len(deck.notes)} notes{PC.RESET}")
@@ -82,12 +84,14 @@ def main(args: argparse.Namespace) -> None:
                 for field_name, field_value in list(zip(field_names, field_values))[
                     : args.max_display_fields
                 ]:
-                    print(f"      {PC.BLUE}{field_name}{PC.RESET}: {PC.PURPLE}{field_value}{PC.RESET}")  # noqa: E501
+                    print(
+                        f"      {PC.BLUE}{field_name}{PC.RESET}: {PC.PURPLE}{field_value}{PC.RESET}"
+                    )
                 print()
     except Exception as e:
         print(e)
 
-    
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Quickly see what is inside an .apkg file")
     parser.add_argument("--apkg-filepath", type=str, help="Path to the .apkg file")
