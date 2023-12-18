@@ -17,6 +17,7 @@ from retriever import (
     RetrieverFactory,
     SpanishDictWebsiteScraper,
     WebsiteScraper,
+    WordReferenceWebsiteScraper,
 )
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -356,13 +357,9 @@ async def test_openai_api_retriever() -> None:
     assert translations == [expected_translation]
 
 
-@pytest.fixture
-def collins_url(test_word: str) -> str:
-    return f"https://www.collinsdictionary.com/dictionary/spanish-english/{test_word}"
-
-
 @pytest.mark.asyncio
-async def test_collins_website_scraper(test_word: str, collins_url: str) -> None:
+async def test_collins_website_scraper(test_word: str) -> None:
+    collins_url = f"https://www.collinsdictionary.com/dictionary/spanish-english/{test_word}"
     with open(TEST_RETRIEVER_DIR + "collins_website_scraper_test.html", encoding="utf-8") as fh:
         mock_html = fh.read()
     retriever = CollinsWebsiteScraper(language_from=Language.SPANISH, language_to=Language.ENGLISH)
@@ -422,6 +419,48 @@ async def test_collins_website_scraper(test_word: str, collins_url: str) -> None
                             SentencePair(
                                 source_sentence="se tendrán que hacer la prueba del SIDA",
                                 target_sentence="they’ll have to be tested for AIDS",
+                            ),
+                        ],
+                    ),
+                ],
+                retriever=retriever,
+            ),
+        ]
+
+
+@pytest.mark.asyncio
+async def test_word_reference_website_scraper(test_word: str) -> None:
+    word_reference_url = f"https://www.wordreference.com/es/en/translation.asp?spen={test_word}"
+    with open(
+        TEST_RETRIEVER_DIR + "word_reference_website_scraper_test.html", encoding="utf-8"
+    ) as fh:
+        mock_html = fh.read()
+    retriever = WordReferenceWebsiteScraper(
+        language_from=Language.SPANISH, language_to=Language.ENGLISH
+    )
+    with aioresponses() as m:
+        m.get(word_reference_url, status=200, body=mock_html)
+        translations = await retriever.retrieve_translations(test_word)
+        assert translations == [
+            Translation(
+                word_to_translate="prueba",
+                part_of_speech="nf",
+                definitions=[
+                    Definition(
+                        text="evidence",
+                        sentence_pairs=[
+                            SentencePair(
+                                source_sentence="La policía científica está analizando la prueba que puede ser decisiva.",  # noqa: E501
+                                target_sentence="Police are analyzing a crucial piece of evidence.",
+                            ),
+                        ],
+                    ),
+                    Definition(
+                        text="proof",
+                        sentence_pairs=[
+                            SentencePair(
+                                source_sentence="¿Ves? El algodón está limpio. Esa es la prueba de que los azulejos están limpios.",  # noqa: E501
+                                target_sentence="What more proof do you need that she is cheating on you?",  # noqa: E501
                             ),
                         ],
                     ),
