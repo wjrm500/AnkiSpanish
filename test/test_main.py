@@ -8,7 +8,7 @@ from dictionary import Dictionary
 from genanki_extension import load_decks_from_package
 from main import main
 from note_creator import NoteCreator, model
-from retriever import Language, RetrieverFactory, SpanishDictWebsiteScraper
+from retriever import SpanishDictWebsiteScraper
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -21,15 +21,7 @@ async def test_main() -> None:
         if os.path.exists(anki_package_path):
             os.remove(anki_package_path)
 
-        # Create retriever
-        retriever = RetrieverFactory.create_retriever(
-            retriever_type=SpanishDictWebsiteScraper.lookup_key,
-            language_from=Language.SPANISH,
-            language_to=Language.ENGLISH,
-            concise_mode=True,
-        )
-
-        # Create mock notes
+        # Run main with mocks
         deck_id = "123456789"
         mock_notes = {
             "hola": [
@@ -70,7 +62,7 @@ async def test_main() -> None:
         with patch("main.NoteCreator", return_value=note_creator):
             await main(
                 words_to_translate=["hola", "adiós"],
-                retriever=retriever,
+                retriever=MagicMock(spec=SpanishDictWebsiteScraper),
                 concurrency_limit=1,
                 note_limit=0,
                 output_anki_package_path=anki_package_path,
@@ -89,7 +81,7 @@ async def test_main() -> None:
             word_to_translate = note.fields[1]
             assert (
                 note.fields[1:] == mock_notes[word_to_translate][0].fields[1:]
-            )  # Ignore deck_id as it is random  # noqa: E501
+            )  # Ignore deck_id as it is random
     finally:
         # Delete output.apkg if it exists
         if os.path.exists(anki_package_path):
