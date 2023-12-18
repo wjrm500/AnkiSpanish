@@ -1,6 +1,7 @@
 import abc
 import argparse
 import asyncio
+import itertools
 import json
 import os
 import re
@@ -108,6 +109,7 @@ class RetrieverFactory:
             CollinsWebsiteScraper,
             OpenAIAPIRetriever,
             SpanishDictWebsiteScraper,
+            WordReferenceWebsiteScraper,
         ]
         for retriever in retrievers:
             if retriever.lookup_key == retriever_type:
@@ -456,10 +458,6 @@ class CollinsWebsiteScraper(WebsiteScraper):
 
 
 class WordReferenceWebsiteScraper(WebsiteScraper):
-    """
-    WORK IN PROGRESS - NOT YET FUNCTIONAL
-    """
-
     available_language_pairs: list[tuple[Language, Language]] = [
         (Language.ENGLISH, Language.FRENCH),
         (Language.ENGLISH, Language.GERMAN),
@@ -509,76 +507,53 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
 
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         soup = await self._get_soup(self.link(word_to_translate))
-        from_word_divs: list[Tag] = soup.find_all("td", class_="FrWrd")[
-            1:
-        ]  # First instance is header with language name
-        word_to_translate = self._standardize(from_word_divs[0].contents[0].contents[0].contents[0])
-        to_word_divs: list[Tag] = soup.find_all("td", class_="ToWrd")[
-            1:
-        ]  # First instance is header with language name
-        example_divs: list[Tag] = soup.find_all("td", class_=["ToEx", "FrEx"])
-        to_example_divs, from_example_divs = [], []
-        current_class = None
-        for example_div in example_divs[:]:
-            new_class = example_div["class"][0]
-            if new_class == current_class:
+        table: Tag = soup.find("table", class_="WRD")
+        trs: list[Tag] = table.find_all("tr")
+        translation_dict = {}
+        for class_, rows in itertools.groupby(trs, lambda x: x.get("class")[0]):
+            if class_ not in ("even", "odd"):
                 continue
-            if new_class == "ToEx":
-                to_example_divs.append(example_div)
-            elif new_class == "FrEx":
-                from_example_divs.append(example_div)
-            current_class = new_class
-        zipped = zip(from_word_divs, to_word_divs, from_example_divs, to_example_divs)
-        pos_dict: dict[str, tuple[list[Tag]]] = {}
-        for frwrd_div, towrd_div, frex_div, toex_div in zipped:
-            if not (found_em := frwrd_div.find("em")):
-                break
-            part_of_speech = found_em.text.split(",")[0]
-            if part_of_speech not in pos_dict:
-                pos_dict[part_of_speech] = {
-                    "towrd_divs": [],
-                    "frex_divs": [],
-                    "toex_divs": [],
-                }
-            pos_dict[part_of_speech]["towrd_divs"].append(towrd_div)
-            pos_dict[part_of_speech]["frex_divs"].append(frex_div)
-            pos_dict[part_of_speech]["toex_divs"].append(toex_div)
-        translations: list[Translation] = []
-        for part_of_speech, div_dict in pos_dict.items():
-            definition_dict: dict[str, Definition] = {}
-            for towrd_div, frex_div, toex_div in zip(
-                div_dict["towrd_divs"], div_dict["frex_divs"], div_dict["toex_divs"]
-            ):
-                definition_text = self._standardize(towrd_div.contents[0].strip().split(",")[0])
-                if definition_text not in definition_dict:
-                    definition = Definition(
-                        text=definition_text,
-                        sentence_pairs=[
-                            SentencePair(
-                                source_sentence=frex_div.text, target_sentence=toex_div.text
-                            )
-                        ],
-                        max_sentence_pairs=(1 if self.concise_mode else 3),
-                    )
-                    definition_dict[definition_text] = definition
-                    if self.concise_mode:
-                        break
-                else:
-                    definition = definition_dict[definition_text]
-                    sentence_pair = SentencePair(
-                        source_sentence=frex_div.text, target_sentence=toex_div.text
-                    )
-                    definition.sentence_pairs.append(sentence_pair)
+            rows: list[Tag] = list(rows)
+            from_word_tag = next((row.find("td", class_="FrWrd") for row in rows), None)
+            pos_tag = next((row.find("em", class_="POS2") for row in rows), None)
+            to_word_tag = next((row.find("td", class_="ToWrd") for row in rows), None)
+            from_word = from_word_tag.contents[0].contents[0]
+            part_of_speech = pos_tag.text
+            to_word = to_word_tag.contents[0].strip()
+            from_example, to_example = None, None
+            for row in rows:
+                if not from_example:
+                    from_example = t.text.strip() if (t := row.find("td", class_="FrEx")) else None
+                if not to_example:
+                    to_example_tag = row.find("td", class_="ToEx")
+                    if to_example_tag:
+                        if tooltip_tag := to_example_tag.find("span", class_="tooltip"):
+                            tooltip_tag.decompose()
+                        to_example = to_example_tag.text.strip()
+                if from_example and to_example:
+                    break
+            if (from_word, part_of_speech) not in translation_dict:
+                translation_dict[(from_word, part_of_speech)] = {}
+            translation_dict[(from_word, part_of_speech)][to_word] = SentencePair(
+                source_sentence=from_example,
+                target_sentence=to_example,
+            )
+        translations = []
+        for (from_word, part_of_speech), definition_data in translation_dict.items():
+            definitions = []
+            for definition_text, sentence_pair in definition_data.items():
+                definition = Definition(
+                    text=definition_text,
+                    sentence_pairs=[sentence_pair],
+                )
+                definitions.append(definition)
             translation = Translation(
-                word_to_translate=word_to_translate,
+                word_to_translate=from_word,
                 part_of_speech=part_of_speech,
-                definitions=list(definition_dict.values()),
+                definitions=definitions,
                 retriever=self,
-                max_definitions=(1 if self.concise_mode else 3),
             )
             translations.append(translation)
-            if self.concise_mode:
-                break
         return translations
 
 
@@ -606,7 +581,7 @@ async def main(
         translations = await retriever.retrieve_translations(word_to_translate)
         s = ""
         for translation in translations:
-            s += f"{PC.GREEN}{translation.word_to_translate} ({translation.part_of_speech}) - {', '.join([definition.text for definition in translation.definitions])}{PC.RESET}"  # noqa: E501
+            s += f"{PC.GREEN}{translation.word_to_translate} {PC.CYAN}({translation.part_of_speech}){PC.GREEN} - {', '.join([definition.text for definition in translation.definitions])}{PC.RESET}"  # noqa: E501
             for definition in translation.definitions:
                 s += f"\n   {PC.YELLOW}{definition.text}{PC.RESET}"
                 for sentence_pair in definition.sentence_pairs:
