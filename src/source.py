@@ -110,6 +110,7 @@ class CSVSource(Source):
 
 
 def main(args: argparse.Namespace) -> None:
+    """Gets words from a source and prints them to the console."""
     try:
         if args.words:
             source = SimpleSource(words_to_translate=args.words)
@@ -139,8 +140,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Create Anki deck for language learning. Provide either --words, --anki-package-path or --csv as a source of words"  # noqa: E501
     )
-
-    # Source arguments
     parser.add_argument("--words", nargs="+", default=[], help="Words to translate")
     parser.add_argument("--anki-package-path", type=str, default="", help="Path to .apkg")
     parser.add_argument(

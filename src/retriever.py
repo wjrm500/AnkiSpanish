@@ -144,6 +144,12 @@ class APIRetriever(Retriever, abc.ABC):
 
 
 class OpenAIAPIRetriever(APIRetriever):
+    """
+    Uses the OpenAI API to retrieve translations for a given word. The API is accessed via the
+    openai library. The API key is retrieved from the .env file. Different OpenAI models can be
+    specified to retrieve translations.
+    """
+
     available_language_pairs: list[tuple[Language, Language]] = [
         (Language.ENGLISH, Language.SPANISH),
         (Language.SPANISH, Language.ENGLISH),
@@ -191,6 +197,11 @@ class OpenAIAPIRetriever(APIRetriever):
                 print("Invalid model, please try again.")
 
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
+        """
+        Retrieves translations for a given word by requesting that the OpenAI API responds with
+        structured JSON data that can be easily parsed into Translation, Definition and SentencePair
+        objects.
+        """
         if not self.language_from:
             self.set_language_from()
         if not self.model:
@@ -239,8 +250,8 @@ class OpenAIAPIRetriever(APIRetriever):
 
 class SpanishDictWebsiteScraper(WebsiteScraper):
     """
-    A website scraper for SpanishDict.com, which retrieves English translations for a Spanish word
-    by searching the online dictionary for the Spanish word.
+    A website scraper for SpanishDict.com, which retrieves translations for a given word by parsing
+    the HTML of the dictionary page for that word.
     """
 
     available_language_pairs: list[tuple[Language, Language]] = [

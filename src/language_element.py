@@ -48,8 +48,8 @@ class Definition:
     A class representing a definition of a word. A definition is a string of text, and is
     accompanied by one or more sentence pairs, which provide context for the definition.
 
-    If you are wondering what the difference is between a definition and a translation, consider the
-    following examples:
+    Regarding the difference is between a definition and a translation, consider the following
+    examples:
     - The Spanish word "amanecer"
         - This can be translated as:
             - A masculine noun - "dawn"
@@ -154,6 +154,11 @@ class Translation:
         self._set_definitions(definitions, max_definitions)
 
     def _set_definitions(self, definitions: list[Definition], max_definitions: int) -> None:
+        """
+        Removes duplicate definitions, removes synonymous definitions if configured to do so, sets
+        the definitions attribute on the instance, and sets the translation for each definition.
+        """
+
         # Remove duplicate definitions
         seen = set()
         unique_definitions: list[Definition] = []

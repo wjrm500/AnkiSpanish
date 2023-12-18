@@ -54,8 +54,8 @@ class NoteCreator:
 
     def _combine_sentences(self, sentences: list[str]) -> str:
         """
-        Combines a list of sentences into a single string, with each sentence on a new line and
-        prefixed with its index.
+        Combines a list of sentences into a single piece of HTML, with each sentence on a new line
+        and prefixed with its index in dark gray font.
         """
         if len(sentences) == 1:
             return sentences[0]

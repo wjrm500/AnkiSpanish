@@ -43,6 +43,7 @@ class SynonymChecker:
 
 
 def main(args: argparse.Namespace) -> None:
+    """Prints synonyms for two words and whether or not they are synonymous."""
     word_1 = args.words[0]
     word_1_synonyms = SynonymChecker.get_synonyms(word_1, args.pos)
     print(f"Synonyms for {word_1}: {word_1_synonyms}")

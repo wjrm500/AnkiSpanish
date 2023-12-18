@@ -66,6 +66,9 @@ def load_decks_from_package(apkg_filepath: str) -> list[Deck]:
 
 
 def main(args: argparse.Namespace) -> None:
+    """
+    Allows you to quickly see what is inside an .apkg file.
+    """
     try:
         if not os.path.exists(args.apkg_filepath):
             raise FileNotFoundError(f"File '{args.apkg_filepath}' does not exist")

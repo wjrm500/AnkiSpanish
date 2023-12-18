@@ -16,12 +16,11 @@ class Dictionary:
         self.retriever = retriever
         self.translations = {}
 
-    """
-    Returns a list of Translation objects for a given word. If the word is not already in the
-    dictionary, it uses the Retriever to retrieve a list of translations.
-    """
-
     async def translate(self, word: str) -> list[Translation]:
+        """
+        Returns a list of Translation objects for a given word. If the word is not already in the
+        dictionary, it uses its Retriever (if one is associated) to retrieve a list of translations.
+        """
         if word not in self.translations:
             if self.retriever is None:
                 return []
