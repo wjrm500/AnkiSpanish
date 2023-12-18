@@ -65,6 +65,29 @@ def load_decks_from_package(apkg_filepath: str) -> list[Deck]:
     return loaded_decks
 
 
+def main(args: argparse.Namespace) -> None:
+    try:
+        if not os.path.exists(args.apkg_filepath):
+            raise FileNotFoundError(f"File '{args.apkg_filepath}' does not exist")
+
+        decks = load_decks_from_package(args.apkg_filepath)
+        print(f"Loaded {len(decks)} deck{'s' if len(decks) > 1 else ''} from '{args.apkg_filepath}'")  # noqa: E501
+        print()
+        for deck in decks[: args.max_display_decks]:
+            print(f"{PC.GREEN}Deck '{deck.name}' has {len(deck.notes)} notes{PC.RESET}")
+            for i, note in enumerate(deck.notes[: args.max_display_notes], 1):
+                field_names = [field["name"]["name"] for field in note.model.fields]
+                field_values = note.fields
+                print(f"   {PC.YELLOW}Note {i}{PC.RESET}:")
+                for field_name, field_value in list(zip(field_names, field_values))[
+                    : args.max_display_fields
+                ]:
+                    print(f"      {PC.BLUE}{field_name}{PC.RESET}: {PC.PURPLE}{field_value}{PC.RESET}")  # noqa: E501
+                print()
+    except Exception as e:
+        print(e)
+
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Quickly see what is inside an .apkg file")
     parser.add_argument("--apkg-filepath", type=str, help="Path to the .apkg file")
@@ -87,23 +110,4 @@ if __name__ == "__main__":
         help="Maximum number of fields to display per note",
     )
     args = parser.parse_args()
-    try:
-        if not os.path.exists(args.apkg_filepath):
-            raise FileNotFoundError(f"File '{args.apkg_filepath}' does not exist")
-
-        decks = load_decks_from_package(args.apkg_filepath)
-        print(f"Loaded {len(decks)} deck{'s' if len(decks) > 1 else ''} from '{args.apkg_filepath}'")
-        print()
-        for deck in decks[: args.max_display_decks]:
-            print(f"{PC.GREEN}Deck '{deck.name}' has {len(deck.notes)} notes{PC.RESET}")
-            for i, note in enumerate(deck.notes[: args.max_display_notes], 1):
-                field_names = [field["name"]["name"] for field in note.model.fields]
-                field_values = note.fields
-                print(f"   {PC.YELLOW}Note {i}{PC.RESET}:")
-                for field_name, field_value in list(zip(field_names, field_values))[
-                    : args.max_display_fields
-                ]:
-                    print(f"      {PC.BLUE}{field_name}{PC.RESET}: {PC.PURPLE}{field_value}{PC.RESET}")
-                print()
-    except Exception as e:
-        print(e)
+    main(args)
