@@ -29,7 +29,7 @@ class Retriever(abc.ABC):
     into a standardised representation.
     """
 
-    available_language_pairs: list[tuple[Language, Language]] = []
+    available_language_pairs: list[tuple[Language, Language]] = []  # Empty list means all pairs
     base_url: str
     concise_mode: bool = False
     language_from: Language
@@ -44,7 +44,10 @@ class Retriever(abc.ABC):
         self.language_from = language_from
         self.language_to = language_to
         self.concise_mode = concise_mode
-        if (self.language_from, self.language_to) not in self.available_language_pairs:
+        if (
+            self.available_language_pairs
+            and (self.language_from, self.language_to) not in self.available_language_pairs
+        ):
             raise ValueError(
                 f"Language pair {self.language_from.value} -> {self.language_to.value} not supported by the {self.__class__.__name__} retriever"  # noqa: E501
             )
@@ -150,10 +153,7 @@ class OpenAIAPIRetriever(APIRetriever):
     specified to retrieve translations.
     """
 
-    available_language_pairs: list[tuple[Language, Language]] = [
-        (Language.ENGLISH, Language.SPANISH),
-        (Language.SPANISH, Language.ENGLISH),
-    ]
+    available_language_pairs: list[tuple[Language, Language]] = []
     client: AsyncOpenAI
     lookup_key = "openai"
     model: OpenAIModel | None = None
@@ -211,7 +211,12 @@ class OpenAIAPIRetriever(APIRetriever):
         response = await self.client.chat.completions.create(
             model=self.model.value,
             messages=[
-                {"role": "system", "content": OPEN_AI_SYSTEM_PROMPT},
+                {
+                    "role": "system",
+                    "content": OPEN_AI_SYSTEM_PROMPT.format(
+                        x=self.language_from.value, y=self.language_to.value
+                    ),
+                },
                 {"role": "user", "content": f"{self.language_from.value}: {word_to_translate}"},
             ],
         )
