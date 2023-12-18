@@ -66,7 +66,7 @@ def load_decks_from_package(apkg_filepath: str) -> list[Deck]:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Load Anki decks from .apkg files")
+    parser = argparse.ArgumentParser(description="Quickly see what is inside an .apkg file")
     parser.add_argument("--apkg-filepath", type=str, help="Path to the .apkg file")
     parser.add_argument(
         "--max-display-decks",
@@ -92,17 +92,18 @@ if __name__ == "__main__":
             raise FileNotFoundError(f"File '{args.apkg_filepath}' does not exist")
 
         decks = load_decks_from_package(args.apkg_filepath)
-        print(f"Loaded {len(decks)} decks")
+        print(f"Loaded {len(decks)} deck{'s' if len(decks) > 1 else ''} from '{args.apkg_filepath}'")
+        print()
         for deck in decks[: args.max_display_decks]:
-            print(f"Deck '{deck.name}' has {len(deck.notes)} notes")
+            print(f"{PC.GREEN}Deck '{deck.name}' has {len(deck.notes)} notes{PC.RESET}")
             for i, note in enumerate(deck.notes[: args.max_display_notes], 1):
                 field_names = [field["name"]["name"] for field in note.model.fields]
                 field_values = note.fields
-                print(f"   {PC.CYAN}Note #{i}:{PC.RESET}")
+                print(f"   {PC.YELLOW}Note {i}{PC.RESET}:")
                 for field_name, field_value in list(zip(field_names, field_values))[
                     : args.max_display_fields
                 ]:
-                    print(f"\t{PC.PURPLE}{field_name}{PC.RESET}: {PC.GREEN}{field_value}{PC.RESET}")
+                    print(f"      {PC.BLUE}{field_name}{PC.RESET}: {PC.PURPLE}{field_value}{PC.RESET}")
                 print()
     except Exception as e:
         print(e)

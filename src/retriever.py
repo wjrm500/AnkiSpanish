@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
 from constant import OPEN_AI_SYSTEM_PROMPT, Language, OpenAIModel
+from constant import PrintColour as PC
 from exception import RateLimitException
 from language_element import Definition, SentencePair, Translation
 from log import logger
@@ -582,16 +583,25 @@ async def main(
         retriever_type=retriever_type,
         language_from=language_from,
         language_to=language_to,
+        concise_mode=concise_mode,
     )
-    translations = await retriever.retrieve_translations(word_to_translate)
-    for translation in translations:
-        print(translation.stringify(verbose=True))
-        print()
-    await retriever.close_session()
+    try:
+        translations = await retriever.retrieve_translations(word_to_translate)
+        for translation in translations:
+            s = f"{PC.GREEN}{translation.word_to_translate} ({translation.part_of_speech}) - {', '.join([definition.text for definition in translation.definitions])}{PC.RESET}"  # noqa: E501
+            for definition in translation.definitions:
+                s += f"\n   {PC.YELLOW}{definition.text}{PC.RESET}"
+                for sentence_pair in definition.sentence_pairs:
+                    s += f"\n      {PC.BLUE}{sentence_pair.source_sentence}{PC.RESET} - {PC.PURPLE}{sentence_pair.target_sentence}{PC.RESET}"  # noqa: E501
+        print(s)
+    except Exception as e:
+        print(e)
+    finally:
+        await retriever.close_session()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Translate words by scraping online dictionaries.")
+    parser = argparse.ArgumentParser(description="Translate a word using a retriever")
     parser.add_argument("--word", type=str, default="hello", help="Word to translate")
     parser.add_argument(
         "--language-from",

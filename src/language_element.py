@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from retriever import Retriever
 
-from constant import PrintColour as PC
 from synonym import SynonymChecker
 
 
@@ -42,13 +41,6 @@ class SentencePair:
 
     def set_definition(self, definition: "Definition") -> None:
         self.definition = definition
-
-    def stringify(self, verbose: bool = False) -> str:
-        return (
-            f"{PC.BLUE}{self.source_sentence}{PC.RESET} - {PC.PURPLE}{self.target_sentence}{PC.RESET}"  # noqa: E501
-            if verbose
-            else self.target_sentence
-        )
 
 
 class Definition:
@@ -104,13 +96,6 @@ class Definition:
 
     def set_translation(self, translation: "Translation") -> None:
         self.translation = translation
-
-    def stringify(self, verbose: bool = False) -> str:
-        s = f"{PC.YELLOW}{self.text}{PC.RESET}"
-        if verbose:
-            for sentence_pair in self.sentence_pairs:
-                s += f"\n   {sentence_pair.stringify(verbose)}"
-        return s
 
 
 class Translation:
@@ -190,10 +175,3 @@ class Translation:
         # Set translation for each definition
         for definition in self.definitions:
             definition.set_translation(self)
-
-    def stringify(self, verbose: bool = False) -> str:
-        s = f"{PC.GREEN}{self.word_to_translate} ({self.part_of_speech}) - {', '.join([definition.text for definition in self.definitions])}{PC.RESET}"  # noqa: E501
-        if verbose:
-            for definition in self.definitions:
-                s += f"\n{definition.stringify(verbose)}"
-        return s
