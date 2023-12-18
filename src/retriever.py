@@ -595,25 +595,29 @@ async def main(
     """
     print(f"Word to translate: {word_to_translate}")
     print("")
-    retriever = RetrieverFactory.create_retriever(
-        retriever_type=retriever_type,
-        language_from=language_from,
-        language_to=language_to,
-        concise_mode=concise_mode,
-    )
+    retriever = None
     try:
+        retriever = RetrieverFactory.create_retriever(
+            retriever_type=retriever_type,
+            language_from=language_from,
+            language_to=language_to,
+            concise_mode=concise_mode,
+        )
         translations = await retriever.retrieve_translations(word_to_translate)
+        s = ""
         for translation in translations:
-            s = f"{PC.GREEN}{translation.word_to_translate} ({translation.part_of_speech}) - {', '.join([definition.text for definition in translation.definitions])}{PC.RESET}"  # noqa: E501
+            s += f"{PC.GREEN}{translation.word_to_translate} ({translation.part_of_speech}) - {', '.join([definition.text for definition in translation.definitions])}{PC.RESET}"  # noqa: E501
             for definition in translation.definitions:
                 s += f"\n   {PC.YELLOW}{definition.text}{PC.RESET}"
                 for sentence_pair in definition.sentence_pairs:
                     s += f"\n      {PC.BLUE}{sentence_pair.source_sentence}{PC.RESET} - {PC.PURPLE}{sentence_pair.target_sentence}{PC.RESET}"  # noqa: E501
+            s += "\n\n"
         print(s)
     except Exception as e:
         print(e)
     finally:
-        await retriever.close_session()
+        if retriever:
+            await retriever.close_session()
 
 
 if __name__ == "__main__":
