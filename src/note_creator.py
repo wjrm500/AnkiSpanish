@@ -151,3 +151,6 @@ class NoteCreator:
             except Exception as e:
                 logger.error(f"Error processing '{word_to_translate}': {e}")
                 return []
+
+
+__all__ = ["model", "NoteCreator"]
