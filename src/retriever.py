@@ -507,37 +507,41 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
 
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         soup = await self._get_soup(self.link(word_to_translate))
-        table: Tag = soup.find("table", class_="WRD")
-        trs: list[Tag] = table.find_all("tr")
-        translation_dict = {}
-        for class_, rows in itertools.groupby(trs, lambda x: x.get("class")[0]):
+        table = soup.find("table", class_="WRD")
+        trs: list[Tag] = table.find_all("tr")  # type: ignore[union-attr]
+        translation_dict: dict[tuple[str, str], dict[str, SentencePair]] = {}
+        for class_, grouper in itertools.groupby(
+            trs, lambda x: c[0] if (c := x.get("class")) else None
+        ):
             if class_ not in ("even", "odd"):
                 continue
-            rows: list[Tag] = list(rows)
+            rows: list[Tag] = list(grouper)
             from_word_tag = next((row.find("td", class_="FrWrd") for row in rows), None)
             pos_tag = next((row.find("em", class_="POS2") for row in rows), None)
             to_word_tag = next((row.find("td", class_="ToWrd") for row in rows), None)
-            from_word = from_word_tag.contents[0].contents[0]
-            part_of_speech = pos_tag.text
-            to_word = to_word_tag.contents[0].strip()
+            from_word = from_word_tag.contents[0].contents[0]  # type: ignore[union-attr]
+            part_of_speech = pos_tag.text  # type: ignore[union-attr]
+            to_word = to_word_tag.contents[0].strip()  # type: ignore[union-attr]
             from_example, to_example = None, None
             for row in rows:
                 if not from_example:
                     from_example = t.text.strip() if (t := row.find("td", class_="FrEx")) else None
                 if not to_example:
-                    to_example_tag = row.find("td", class_="ToEx")
+                    to_example_tag: Tag = row.find("td", class_="ToEx")  # type: ignore[assignment]
                     if to_example_tag:
-                        if tooltip_tag := to_example_tag.find("span", class_="tooltip"):
+                        tooltip_tag: Tag = to_example_tag.find("span", class_="tooltip")  # type: ignore[assignment]  # noqa: E501
+                        if tooltip_tag:
                             tooltip_tag.decompose()
                         to_example = to_example_tag.text.strip()
                 if from_example and to_example:
                     break
-            if (from_word, part_of_speech) not in translation_dict:
-                translation_dict[(from_word, part_of_speech)] = {}
-            translation_dict[(from_word, part_of_speech)][to_word] = SentencePair(
-                source_sentence=from_example,
-                target_sentence=to_example,
-            )
+            if from_example and to_example:
+                if (from_word, part_of_speech) not in translation_dict:
+                    translation_dict[(from_word, part_of_speech)] = {}
+                translation_dict[(from_word, part_of_speech)][to_word] = SentencePair(
+                    source_sentence=from_example,
+                    target_sentence=to_example,
+                )
         translations = []
         for (from_word, part_of_speech), definition_data in translation_dict.items():
             definitions = []

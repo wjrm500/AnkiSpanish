@@ -83,16 +83,17 @@ class NoteCreator:
             if translation.retriever
             else translation.word_to_translate
         )
-        definition_html = ", ".join(
-            [
-                f"<a href='{lang_to_url}' style='color:green;'>{definition.text}</a>"
-                if (lang_to_url := definition.translation.retriever.reverse_link(definition.text))
-                else definition.text
-                for definition in translation.definitions
-            ]
-            if translation.retriever
-            else [definition.text for definition in translation.definitions]
-        )
+        definition_html_components = []
+        for definition in translation.definitions:
+            if definition.translation.retriever:
+                link = definition.translation.retriever.reverse_link(definition.text)
+                if link:
+                    definition_html_components.append(
+                        f"<a href='{link}' style='color:green;'>{definition.text}</a>"
+                    )
+                    continue
+            definition_html_components.append(definition.text)
+        definition_html = ", ".join(definition_html_components)
         field_dict = {
             "deck_id": str(
                 self.deck_id

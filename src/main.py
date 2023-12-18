@@ -177,7 +177,7 @@ if __name__ == "__main__":
         elif args.csv:
             source = CSVSource(file_path=args.csv)
         else:
-            raise argparse.ArgumentError(
+            raise ValueError(
                 "Must provide either --words, --anki-package-path, --anki-deck-name and --anki-field-name, or --csv"  # noqa: E501
             )
         words = source.get_words_to_translate()

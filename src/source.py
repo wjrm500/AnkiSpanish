@@ -111,6 +111,7 @@ class CSVSource(Source):
 
 def main(args: argparse.Namespace) -> None:
     """Gets words from a source and prints them to the console."""
+    source: Source
     try:
         if args.words:
             source = SimpleSource(words_to_translate=args.words)
@@ -123,7 +124,7 @@ def main(args: argparse.Namespace) -> None:
         elif args.csv:
             source = CSVSource(file_path=args.csv)
         else:
-            raise argparse.ArgumentError(
+            raise ValueError(
                 "Must provide either --words, --anki-package-path, --anki-deck-name and --anki-field-name, or --csv"  # noqa: E501
             )
         print(f"Getting words from {source.__class__.__name__}")
