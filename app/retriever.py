@@ -3,6 +3,7 @@ import argparse
 import asyncio
 import itertools
 import json
+import logging
 import os
 import re
 import urllib.parse
@@ -16,7 +17,7 @@ from bs4.element import Tag
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
-from app.constant import OPEN_AI_SYSTEM_PROMPT, Language, OpenAIModel
+from app.constant import OPENAI_SYSTEM_PROMPT, OPENAI_USER_PROMPT, Language, OpenAIModel
 from app.constant import PrintColour as PC
 from app.exception import RateLimitException, RedirectException
 from app.language_element import Definition, SentencePair, Translation
@@ -211,18 +212,30 @@ class OpenAIAPIRetriever(APIRetriever):
             self.set_model()
         assert self.language_from
         assert self.model
-        response = await self.client.chat.completions.create(
-            model=self.model.value,
-            messages=[
-                {
-                    "role": "system",
-                    "content": OPEN_AI_SYSTEM_PROMPT.format(
-                        x=self.language_from.value, y=self.language_to.value
-                    ),
-                },
-                {"role": "user", "content": f"{self.language_from.value}: {word_to_translate}"},
-            ],
-        )
+        try:
+            logging.disable(logging.CRITICAL)
+            response = await self.client.chat.completions.create(
+                model=self.model.value,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": OPENAI_SYSTEM_PROMPT.format(
+                            language_from=self.language_from.value,
+                            language_to=self.language_to.value,
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": OPENAI_USER_PROMPT.format(
+                            language_from=self.language_from.value,
+                            language_to=self.language_to.value,
+                            word_to_translate=word_to_translate,
+                        )
+                    },
+                ],
+            )
+        finally:
+            logging.disable(logging.NOTSET)
         self.requests_made += 1
         if not (content := response.choices[0].message.content):
             return []

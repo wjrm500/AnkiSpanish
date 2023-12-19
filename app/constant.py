@@ -144,3 +144,10 @@ And your response would be:
 
 Notice that the response format uses English field names regardless of the language pair.
 """
+
+
+OPENAI_USER_PROMPT = """
+Language from: {language_from}
+Language to: {language_to}
+Word to translate: {word_to_translate}
+"""
