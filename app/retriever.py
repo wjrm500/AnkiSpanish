@@ -506,6 +506,12 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
             return f"{self.base_url}/es/translation.asp?tranword={self._standardize(definition)}"
         return f"{self.base_url}/{self.lang_shortener[self.language_from]}{self.lang_shortener[self.language_to]}/{self._standardize(definition)}"  # noqa: E501
 
+    def _from_word_from_FrWrd_tag(self, FrWrd_tag: Tag) -> str:
+        decompose_tags: list[Tag] = FrWrd_tag.find_all(["a", "span"])
+        for dt in decompose_tags:
+            dt.decompose()
+        return FrWrd_tag.find("strong").text.split(",")[0].strip()  # type: ignore[union-attr]
+
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         soup = await self._get_soup(self.link(word_to_translate))
         table = soup.find("table", class_="WRD")
@@ -517,12 +523,12 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
             if class_ not in ("even", "odd"):
                 continue
             rows: list[Tag] = list(grouper)
-            from_word_tag = next((row.find("td", class_="FrWrd") for row in rows), None)
+            FrWrd_tag = next((row.find("td", class_="FrWrd") for row in rows), None)
             pos_tag = next((row.find("em", class_="POS2") for row in rows), None)
-            to_word_tag = next((row.find("td", class_="ToWrd") for row in rows), None)
-            from_word = from_word_tag.contents[0].contents[0]  # type: ignore[union-attr]
+            ToWrd_tag = next((row.find("td", class_="ToWrd") for row in rows), None)
+            from_word = self._from_word_from_FrWrd_tag(FrWrd_tag)
             part_of_speech = pos_tag.text  # type: ignore[union-attr]
-            to_word = to_word_tag.contents[0].strip()  # type: ignore[union-attr]
+            to_word = ToWrd_tag.contents[0].strip()  # type: ignore[union-attr]
             from_example, to_example = None, None
             for row in rows:
                 if not from_example:
@@ -550,6 +556,7 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
                 definition = Definition(
                     text=definition_text,
                     sentence_pairs=[sentence_pair],
+                    max_sentence_pairs=(1 if self.concise_mode else 3),
                 )
                 definitions.append(definition)
             translation = Translation(
@@ -557,9 +564,10 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
                 part_of_speech=part_of_speech,
                 definitions=definitions,
                 retriever=self,
+                max_definitions=(1 if self.concise_mode else 3),
             )
             translations.append(translation)
-        return translations
+        return translations[:3] if self.concise_mode else translations
 
 
 async def main(
