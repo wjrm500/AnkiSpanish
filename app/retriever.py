@@ -618,6 +618,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Translate a word using a retriever")
     parser.add_argument("--word", type=str, default="hello", help="Word to translate")
     parser.add_argument(
+        "-lf",
         "--language-from",
         type=Language,
         default=Language.ENGLISH,
@@ -625,6 +626,7 @@ if __name__ == "__main__":
         choices=list(Language),
     )
     parser.add_argument(
+        "-lt",
         "--language-to",
         type=Language,
         default=Language.SPANISH,
@@ -632,15 +634,17 @@ if __name__ == "__main__":
         choices=list(Language),
     )
     parser.add_argument(
+        "-rt",
         "--retriever-type",
         type=str,
         default=SpanishDictWebsiteScraper.lookup_key,
-        help="Retriever type to use",
+        help="Retriever type to use. Options are 'collins', 'openai', 'spanishdict' and 'wordreference'",
     )
     parser.add_argument(
+        "-cm",
         "--concise-mode",
         action="store_true",
-        help="Concise mode changes the behaviour of the retriever to find the key definitions and remove any translations or definitions that don't correspond with these, typically leading to a smaller deck with more concise flashcards.",  # noqa: E501
+        help="Concise mode changes the behaviour of the retriever to prune translations and definitions, typically leading to a smaller deck with more concise flashcards.",
     )
     args = parser.parse_args()
     asyncio.run(

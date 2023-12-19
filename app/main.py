@@ -91,76 +91,110 @@ async def create_deck(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Create Anki deck for language learning. Provide either --words, --anki-package-path or --csv as a source of words"  # noqa: E501
+        description="Create Anki deck for language learning. Provide either --words, --input-anki-package-path, --input-anki-deck-name and --input-anki-field-name, or --csv as a source of words"  # noqa: E501
     )
 
     # Source arguments
-    parser.add_argument("--words", nargs="+", default=[], help="Words to translate")
-    parser.add_argument("--input-anki-package-path", type=str, default="", help="Path to .apkg")
-    parser.add_argument(
-        "--input-anki-deck-name", type=str, default="", help="Name of deck inside package"
+    source_group = parser.add_argument_group(title="Source arguments")
+    source_group.add_argument("--words", nargs="+", default=[], help="Words to translate")
+    source_group.add_argument(
+        "--input-anki-package-path",
+        type=str,
+        default="",
+        help="Path to Anki package (.apkg) file containing words to translate",
     )
-    parser.add_argument(
-        "--input-anki-field-name", type=str, default="Word", help="Name of field inside note"
+    source_group.add_argument(
+        "--input-anki-deck-name",
+        type=str,
+        default="",
+        help="Name of deck inside Anki package containing words to translate",
     )
-    parser.add_argument("--csv", type=str, default="", help="Path to .csv")
-    parser.add_argument("--skip-first-row", action="store_true", help="Skip first row in CSV")
-    parser.add_argument("--col-num", type=int, default=0, help="Column number in CSV file")
+    source_group.add_argument(
+        "--input-anki-field-name",
+        type=str,
+        default="Word",
+        help="Name of field inside note inside deck inside Anki package containing words to translate",
+    )
+    source_group.add_argument(
+        "--csv", type=str, default="", help="Path to CSV (.csv) file containing words to translate"
+    )
+    source_group.add_argument(
+        "--skip-first-row",
+        action="store_true",
+        help="Skip first row in CSV (.csv) file containing words to transdlate",
+    )
+    source_group.add_argument(
+        "--col-num",
+        type=int,
+        default=0,
+        help="Column number in CSV (.csv) file containing words to translate",
+    )
 
     # Retriever arguments
-    parser.add_argument(
+    retriever_group = parser.add_argument_group(title="Retriever arguments")
+    retriever_group.add_argument(
+        "-lf",
         "--language-from",
         type=Language,
         required=True,
         help="Language to translate from",
         choices=list(Language),
     )
-    parser.add_argument(
+    retriever_group.add_argument(
+        "-lt",
         "--language-to",
         type=Language,
         required=True,
         help="Language to translate to",
         choices=list(Language),
     )
-    parser.add_argument(
+    retriever_group.add_argument(
+        "-rt",
         "--retriever-type",
         type=str,
         required=True,
-        help="Retriever type to use. Options are 'collins', 'openai' and 'spanishdict'",
+        help="Retriever type to use. Options are 'collins', 'openai', 'spanishdict' and 'wordreference'",
     )
-    parser.add_argument(
+    retriever_group.add_argument(
+        "-cm",
         "--concise-mode",
         action="store_true",
-        help="Concise mode changes the behaviour of the retriever to find the key definitions and remove any translations or definitions that don't correspond with these, typically leading to a smaller deck with more concise flashcards.",  # noqa: E501
+        help="Concise mode changes the behaviour of the retriever to prune translations and definitions, typically leading to a smaller deck with more concise flashcards.",
     )
 
-    # Minor arguments
-    parser.add_argument(
+    # Note creator arguments
+    note_creator_group = parser.add_argument_group(title="Note creator arguments")
+    note_creator_group.add_argument(
+        "-cl",
         "--concurrency-limit",
         type=int,
         default=1,
-        min=1,
-        max=5,
-        help="Number of coroutines to run concurrently, minimum of 1, maximum of 5. Defaults to 1",
+        help="Number of coroutines to run concurrently when fetching data. Minimum of 1, maximum of 5. Defaults to 1",
     )
-    parser.add_argument(
-        "--note-limit", type=int, default=0, help="Maximum number of notes to create"
-    )
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
-    # Output argument
-    parser.add_argument(
+    # Output arguments
+    output_group = parser.add_argument_group(title="Output arguments")
+    output_group.add_argument(
+        "-op",
         "--output-anki-package-path",
         type=str,
         default="output.apkg",
         help="Path to output Anki package (.apkg) file",
     )
-    parser.add_argument(
+    output_group.add_argument(
+        "-od",
         "--output-anki-deck-name",
         type=str,
         default="Language learning flashcards",
         help="Name of deck inside output Anki package (.apkg) file",
     )
+
+    # Miscellaneous arguments
+    misc_group = parser.add_argument_group(title="Miscellaneous arguments")
+    misc_group.add_argument(
+        "-nl", "--note-limit", type=int, default=0, help="Maximum number of notes to create"
+    )
+    misc_group.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging")
 
     args = parser.parse_args()
 

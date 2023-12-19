@@ -143,14 +143,41 @@ def main(args: argparse.Namespace) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Create Anki deck for language learning. Provide either --words, --anki-package-path or --csv as a source of words"  # noqa: E501
+        description="Ingest and print words from a source. Provide either --words, --anki-package-path or --csv as a source of words"  # noqa: E501
     )
     parser.add_argument("--words", nargs="+", default=[], help="Words to translate")
-    parser.add_argument("--anki-package-path", type=str, default="", help="Path to .apkg")
     parser.add_argument(
-        "--anki-deck-name", type=str, default="", help="Name of deck inside package"
+        "--anki-package-path",
+        type=str,
+        default="",
+        help="Path to Anki package (.apkg) file containing words to translate",
     )
-    parser.add_argument("--anki-field-name", type=str, default="", help="Name of field inside note")
-    parser.add_argument("--csv", type=str, default="", help="Path to .csv")
+    parser.add_argument(
+        "--anki-deck-name",
+        type=str,
+        default="",
+        help="Name of deck inside Anki package containing words to translate",
+    )
+    parser.add_argument(
+        "--anki-field-name",
+        type=str,
+        default="Word",
+        help="Name of field inside note inside deck inside Anki package containing words to translate",
+    )
+    parser.add_argument(
+        "--csv", type=str, default="", help="Path to CSV (.csv) file containing words to translate"
+    )
+    parser.add_argument(
+        "--skip-first-row",
+        action="store_true",
+        help="Skip first row in CSV (.csv) file containing words to transdlate",
+    )
+    parser.add_argument(
+        "--col-num",
+        type=int,
+        default=0,
+        help="Column number in CSV (.csv) file containing words to translate",
+    )
+
     args = parser.parse_args()
     main(args)
