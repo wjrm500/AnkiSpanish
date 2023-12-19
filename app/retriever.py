@@ -20,7 +20,6 @@ from app.constant import OPEN_AI_SYSTEM_PROMPT, Language, OpenAIModel
 from app.constant import PrintColour as PC
 from app.exception import RateLimitException
 from app.language_element import Definition, SentencePair, Translation
-from app.log import logger
 
 
 class Retriever(abc.ABC):
@@ -374,7 +373,8 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
             quickdef_translations: set[Translation] = set()
             for translation in all_translations:
                 translation.definitions = [
-                    d for d in translation.definitions
+                    d
+                    for d in translation.definitions
                     if any(self._strip_article(d.text) == self._strip_article(q) for q in quickdefs)
                 ]
                 if translation.definitions:
@@ -510,7 +510,10 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
         decompose_tags: list[Tag] = FrWrd_tag.find_all(["a", "span"])
         for dt in decompose_tags:
             dt.decompose()
-        return FrWrd_tag.find("strong").text.split(",")[0].strip()  # type: ignore[union-attr]
+        text = FrWrd_tag.find("strong").text.split(",")[0]  # type: ignore[union-attr]
+        text = text.strip()  # Remove leading and trailing whitespace
+        text = re.sub(r"\s+", " ", text)  # Replace multiple spaces with a single space
+        return text
 
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         soup = await self._get_soup(self.link(word_to_translate))
@@ -523,7 +526,7 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
             if class_ not in ("even", "odd"):
                 continue
             rows: list[Tag] = list(grouper)
-            FrWrd_tag = next((row.find("td", class_="FrWrd") for row in rows), None)
+            FrWrd_tag: Tag = next((row.find("td", class_="FrWrd") for row in rows), None)  # type: ignore  # noqa: E501
             pos_tag = next((row.find("em", class_="POS2") for row in rows), None)
             ToWrd_tag = next((row.find("td", class_="ToWrd") for row in rows), None)
             from_word = self._from_word_from_FrWrd_tag(FrWrd_tag)
