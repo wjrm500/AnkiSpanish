@@ -12,11 +12,11 @@ The output will be an Anki package file `output.apkg`. Now we need to load that 
 
 **Front**:
 
-![Alt text](images/anki_note_front.png)
+![Front of an Anki note showing the word 'hola' in LexiDeck](images/anki_note_front.png)
 
 **Front and back**:
 
-![Alt text](images/anki_note_front_and_back.png)
+![Front and back of an Anki note showing the word 'hola' and its translation in LexiDeck](images/anki_note_front_and_back.png)
 
 As you can see, the note includes a few different components:
 
@@ -31,7 +31,7 @@ As you can see, the note includes a few different components:
 
 To reiterate something I mentioned above - **separate notes are created for each part of speech**, for each word being translated. For example, the Spanish word *amanecer* can be translated as a masculine noun ("dawn"), an impersonal verb ("to dawn") and an intransitive verb ("to wake up" or "to stay up all night"):
 
-![Alt text](images/amanecer.png)
+![Coloured console output showing different translations and definitions for 'amanecer'](images/amanecer.png)
 
 This means that if you ran the program like this:
 
@@ -39,11 +39,11 @@ This means that if you ran the program like this:
 
 You'd end up with a deck containing not one note but three:
 
-![Alt text](images/amanecer_anki_note_1.png)
+![First Anki note for 'amanecer' as a masculine noun](images/amanecer_anki_note_1.png)
 
-![Alt text](images/amanecer_anki_note_2.png)
+![Second Anki note for 'amanecer' as an impersonal verb](images/amanecer_anki_note_2.png)
 
-![Alt text](images/amanecer_anki_note_3.png)
+![Third Anki note for 'amanecer' as an intransitive verb](images/amanecer_anki_note_3.png)
 
 You'll notice that on the final note, we have multiple source language example sentences, definitions and target language example sentences. This happens when there are multiple, distinct meanings for a single word and part of speech. Another example would be the Spanish word *banco*, which as a masculine noun can mean both *bench* and *bank* in English. As a counter-example, in the case of the Spanish noun *papa*, which can mean both *daddy* and *potato*, we end up with two separate notes because *daddy* is the masculine noun translation (*el papa*) while *potato* is the feminine noun translation (*la papa*).
 
@@ -138,19 +138,19 @@ Some example commands:
 
 `lexideck --words hello --language-from english --language-to german --retriever-type wordreference --verbose`
 
-![Alt text](images/wr_spider_cli.png)
+![Console output showing note creation for English to German translation of 'spider'](images/wr_spider_cli.png)
 
-![Alt text](images/wr_spider_anki_note.png)
+![Anki note for 'spider'](images/wr_spider_anki_note.png)
 
 `lexideck --words adelante --language-from spanish --language-to italian --retriever-type openai --verbose`
 
-![Alt text](images/openai_adelante_cli.png)
+![Console output showing note creation for Spanish to Italian translation of 'adelante'](images/openai_adelante_cli.png)
 
-![Alt text](images/openai_adelante_anki_note_1.png)
+![First Anki note for 'adelante' as an interjection](images/openai_adelante_anki_note_1.png)
 
-![Alt text](images/openai_adelante_anki_note_2.png)
+![Second Anki note for 'adelante' as a noun](images/openai_adelante_anki_note_2.png)
 
-![Alt text](images/openai_adelante_anki_note_3.png)
+![Third Anki note for 'adelante' as an adverb](images/openai_adelante_anki_note_3.png)
 
 # Additional notes
 
