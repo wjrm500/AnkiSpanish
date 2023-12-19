@@ -42,7 +42,7 @@ def test_anki_package_source_with_incorrect_field_name() -> None:
         source.get_words_to_translate()
     assert (
         str(e_info.value)
-        == "Field 'Incorrect field name' not found in model. Available fields: ['Word', 'Translation']"  # noqa: E501
+        == "Field 'Incorrect field name' not found in model. Available fields: ['Word', 'Translation']"
     )
 
 

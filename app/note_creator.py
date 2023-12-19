@@ -23,8 +23,8 @@ model = AnkiModel(
     templates=[
         {
             "name": "Card 1",
-            "qfmt": "<div style='text-align:center;'><span style='font-size:20px; font-weight:bold'>{{word_to_translate_html}}</span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",  # noqa: E501
-            "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition_html}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",  # noqa: E501
+            "qfmt": "<div style='text-align:center;'><span style='font-size:20px; font-weight:bold'>{{word_to_translate_html}}</span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",
+            "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition_html}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",
         }
     ],
 )
@@ -171,7 +171,7 @@ class NoteCreator:
                     self.redirect_count += 1
                     if self.redirect_count > 5:
                         input(
-                            f"Redirect loop detected. Visit {e.response_url} to manually intervene, and then hit enter to continue"  # noqa: E501
+                            f"Redirect loop detected. Visit {e.response_url} to manually intervene, and then hit enter to continue"
                         )
                         self.redirect_count = 0
                 return []

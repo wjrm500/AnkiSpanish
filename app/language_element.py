@@ -33,7 +33,7 @@ class SentencePair:
         return hash((self.source_sentence, self.target_sentence))
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(source_sentence={truncate_string(self.source_sentence)}, english_sentence={truncate_string(self.target_sentence)})"  # noqa: E501
+        return f"{self.__class__.__name__}(source_sentence={truncate_string(self.source_sentence)}, english_sentence={truncate_string(self.target_sentence)})"
 
     def __init__(self, source_sentence: str, target_sentence: str) -> None:
         self.source_sentence = source_sentence
@@ -132,7 +132,7 @@ class Translation:
         return hash((self.word_to_translate, self.part_of_speech, tuple(self.definitions)))
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(word_to_translate={self.word_to_translate}, part_of_speech={self.part_of_speech})"  # noqa: E501
+        return f"{self.__class__.__name__}(word_to_translate={self.word_to_translate}, part_of_speech={self.part_of_speech})"
 
     def __init__(
         self,

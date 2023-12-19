@@ -55,7 +55,7 @@ async def create_deck(
             all_new_notes.extend(new_notes)
             notes_to_create += len(new_notes)
             logger.debug(
-                f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.RESET} - Prepared {PC.GREEN}{len(new_notes)}{PC.RESET} notes for word {PC.CYAN}{new_notes[0].fields[1]:{max_word_length}}{PC.RESET} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.RESET}"  # noqa: E501
+                f"{PC.PURPLE}({words_processed:{len(str(len(tasks)))}}/{len(tasks)}){PC.RESET} - Prepared {PC.GREEN}{len(new_notes)}{PC.RESET} notes for word {PC.CYAN}{new_notes[0].fields[1]:{max_word_length}}{PC.RESET} - {PC.PURPLE}total notes to create: {notes_to_create}{PC.RESET}"
             )
             if note_limit and notes_to_create >= note_limit:
                 logger.info(f"Note limit of {note_limit} reached - stopping processing")
@@ -77,13 +77,13 @@ async def create_deck(
     random.shuffle(all_new_notes)
 
     logger.info(
-        f"Creating Anki deck '{output_anki_deck_name}' (ID {deck_id}) with {len(all_new_notes)} notes"  # noqa: E501
+        f"Creating Anki deck '{output_anki_deck_name}' (ID {deck_id}) with {len(all_new_notes)} notes"
     )
     deck = AnkiDeck(deck_id, output_anki_deck_name)
     for new_note in all_new_notes:
         deck.add_note(note=new_note)
         logger.debug(
-            f"Created note for translation {PC.CYAN}{new_note.fields[1]} ({new_note.fields[3]}){PC.RESET}"  # noqa: E501
+            f"Created note for translation {PC.CYAN}{new_note.fields[1]} ({new_note.fields[3]}){PC.RESET}"
         )
     AnkiPackage(deck).write_to_file(output_anki_package_path)
     logger.info(f"Processing complete. Total web requests made: {retriever.requests_made}")
@@ -91,7 +91,7 @@ async def create_deck(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Create Anki deck for language learning. Provide either --words, --input-anki-package-path, --input-anki-deck-name and --input-anki-field-name, or --csv as a source of words"  # noqa: E501
+        description="Create Anki deck for language learning. Provide either --words, --input-anki-package-path, --input-anki-deck-name and --input-anki-field-name, or --csv as a source of words"
     )
 
     # Source arguments
@@ -220,7 +220,7 @@ def main() -> None:
             )
         else:
             raise ValueError(
-                "Must provide either --words, --anki-package-path, --anki-deck-name and --anki-field-name, or --csv"  # noqa: E501
+                "Must provide either --words, --anki-package-path, --anki-deck-name and --anki-field-name, or --csv"
             )
         words = source.get_words_to_translate()
     except Exception as e:

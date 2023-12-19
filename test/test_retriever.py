@@ -165,8 +165,8 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
                                     target_sentence="There's a math test on Wednesday.",
                                 ),
                                 SentencePair(
-                                    source_sentence="No pasó la prueba de acceso y tiene que tomar cursos de regularización.",  # noqa: E501
-                                    target_sentence="He didn't pass the entrance examination and has to take remedial courses.",  # noqa: E501
+                                    source_sentence="No pasó la prueba de acceso y tiene que tomar cursos de regularización.",
+                                    target_sentence="He didn't pass the entrance examination and has to take remedial courses.",
                                 ),
                                 SentencePair(
                                     source_sentence="Nos han dado una prueba para hacer en casa.",
@@ -178,7 +178,7 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
                             text="proof",
                             sentence_pairs=[
                                 SentencePair(
-                                    source_sentence="La carta fue la prueba de que su historia era cierta.",  # noqa: E501
+                                    source_sentence="La carta fue la prueba de que su historia era cierta.",
                                     target_sentence="The letter was proof that her story was true.",
                                 ),
                                 SentencePair(
@@ -186,8 +186,8 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
                                     target_sentence="I give you this ring as a token of my love.",
                                 ),
                                 SentencePair(
-                                    source_sentence="Su risa fue la prueba de que ya no estaba enojada.",  # noqa: E501
-                                    target_sentence="Her laugh was a sign that she was no longer mad.",  # noqa: E501
+                                    source_sentence="Su risa fue la prueba de que ya no estaba enojada.",
+                                    target_sentence="Her laugh was a sign that she was no longer mad.",
                                 ),
                             ],
                         ),
@@ -195,8 +195,8 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
                             text="piece of evidence",
                             sentence_pairs=[
                                 SentencePair(
-                                    source_sentence="El fiscal no pudo presentar ninguna prueba para condenarlo.",  # noqa: E501
-                                    target_sentence="The prosecution couldn't present a single piece of evidence to convict him.",  # noqa: E501
+                                    source_sentence="El fiscal no pudo presentar ninguna prueba para condenarlo.",
+                                    target_sentence="The prosecution couldn't present a single piece of evidence to convict him.",
                                 )
                             ],
                         ),
@@ -211,8 +211,8 @@ async def test_spanish_dict_website_scraper_no_concise_mode(
                             text="evidence",
                             sentence_pairs=[
                                 SentencePair(
-                                    source_sentence="El juez debe pesar todas las pruebas presentadas antes de dictar sentencia.",  # noqa: E501
-                                    target_sentence="The judge must weigh all of the evidence presented before sentencing.",  # noqa: E501
+                                    source_sentence="El juez debe pesar todas las pruebas presentadas antes de dictar sentencia.",
+                                    target_sentence="The judge must weigh all of the evidence presented before sentencing.",
                                 )
                             ],
                         )
@@ -254,7 +254,7 @@ async def test_spanish_dict_website_scraper_concise_mode(
                             text="proof",
                             sentence_pairs=[
                                 SentencePair(
-                                    source_sentence="La carta fue la prueba de que su historia era cierta.",  # noqa: E501
+                                    source_sentence="La carta fue la prueba de que su historia era cierta.",
                                     target_sentence="The letter was proof that her story was true.",
                                 ),
                             ],
@@ -264,7 +264,7 @@ async def test_spanish_dict_website_scraper_concise_mode(
                 ),
             ]
 
-            # Test that the translations do not include the second quickdef if it is removed from the HTML  # noqa: E501
+            # Test that the translations do not include the second quickdef if it is removed from the HTML
             def remove_div_quickdef2_es(html_content: str) -> str:
                 soup = BeautifulSoup(html_content, "html.parser")
                 div_to_remove = soup.find("div", id="quickdef2-es")
@@ -450,7 +450,7 @@ async def test_word_reference_website_scraper(test_word: str) -> None:
                         text="evidence",
                         sentence_pairs=[
                             SentencePair(
-                                source_sentence="La policía científica está analizando la prueba que puede ser decisiva.",  # noqa: E501
+                                source_sentence="La policía científica está analizando la prueba que puede ser decisiva.",
                                 target_sentence="Police are analyzing a crucial piece of evidence.",
                             ),
                         ],
@@ -459,8 +459,8 @@ async def test_word_reference_website_scraper(test_word: str) -> None:
                         text="proof",
                         sentence_pairs=[
                             SentencePair(
-                                source_sentence="¿Ves? El algodón está limpio. Esa es la prueba de que los azulejos están limpios.",  # noqa: E501
-                                target_sentence="What more proof do you need that she is cheating on you?",  # noqa: E501
+                                source_sentence="¿Ves? El algodón está limpio. Esa es la prueba de que los azulejos están limpios.",
+                                target_sentence="What more proof do you need that she is cheating on you?",
                             ),
                         ],
                     ),

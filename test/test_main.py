@@ -30,9 +30,9 @@ async def test_create_deck() -> None:
                     fields=[
                         deck_id,
                         "hola",  # word_to_translate
-                        "<a href='https://www.spanishdict.com/translate/hola?langFrom=es' style='color:red;'>hola</a>",  # word_to_translate_html  # noqa: E501
+                        "<a href='https://www.spanishdict.com/translate/hola?langFrom=es' style='color:red;'>hola</a>",  # word_to_translate_html
                         "interjection",  # part_of_speech
-                        "<a href='https://www.spanishdict.com/translate/hello?langFrom=en' style='color:green;'>hello</a>",  # definition_html  # noqa: E501
+                        "<a href='https://www.spanishdict.com/translate/hello?langFrom=en' style='color:green;'>hello</a>",  # definition_html
                         "¡Hola! ¿Cómo estás?",  # source_sentences
                         "Hello! How are you?",  # target_sentences
                     ],
@@ -44,9 +44,9 @@ async def test_create_deck() -> None:
                     fields=[
                         deck_id,
                         "adiós",  # word_to_translate
-                        "<a href='https://www.spanishdict.com/translate/adi%C3%B3s?langFrom=es' style='color:red;'>adiós</a>",  # word_to_translate_html  # noqa: E501
+                        "<a href='https://www.spanishdict.com/translate/adi%C3%B3s?langFrom=es' style='color:red;'>adiós</a>",  # word_to_translate_html
                         "interjection",  # part_of_speech
-                        "<a href='https://www.spanishdict.com/translate/goodbye?langFrom=en' style='color:green;'>goodbye</a>",  # definition_html  # noqa: E501
+                        "<a href='https://www.spanishdict.com/translate/goodbye?langFrom=en' style='color:green;'>goodbye</a>",  # definition_html
                         "¡Adiós! ¡Nos vemos!",  # source_sentences
                         "Goodbye! See you later!",  # target_sentences
                     ],

@@ -49,7 +49,7 @@ class Retriever(abc.ABC):
             and (self.language_from, self.language_to) not in self.available_language_pairs
         ):
             raise ValueError(
-                f"Language pair {self.language_from.value} -> {self.language_to.value} not supported by the {self.__class__.__name__} retriever"  # noqa: E501
+                f"Language pair {self.language_from.value} -> {self.language_to.value} not supported by the {self.__class__.__name__} retriever"
             )
 
     async def start_session(self) -> None:
@@ -177,7 +177,7 @@ class OpenAIAPIRetriever(APIRetriever):
             try:
                 self.language_from = Language(
                     input(
-                        f"Enter the language of the words being translated. Options are: {', '.join(Language.options())}\n"  # noqa: E501
+                        f"Enter the language of the words being translated. Options are: {', '.join(Language.options())}\n"
                     )
                 )
                 break
@@ -192,7 +192,7 @@ class OpenAIAPIRetriever(APIRetriever):
             try:
                 self.model = OpenAIModel(
                     input(
-                        f"Enter the model to use for translation. Options are: {', '.join(OpenAIModel.options())}\n"  # noqa: E501
+                        f"Enter the model to use for translation. Options are: {', '.join(OpenAIModel.options())}\n"
                     )
                 )
                 break
@@ -274,10 +274,10 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
     lookup_key = "spanishdict"
 
     def link(self, word_to_translate: str) -> str | None:
-        return f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={self.lang_shortener[self.language_from]}"  # noqa: E501
+        return f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={self.lang_shortener[self.language_from]}"
 
     def reverse_link(self, definition: str) -> str | None:
-        return f"{self.base_url}/translate/{self._standardize(definition)}?langFrom={self.lang_shortener[self.language_to]}"  # noqa: E501
+        return f"{self.base_url}/translate/{self._standardize(definition)}?langFrom={self.lang_shortener[self.language_to]}"
 
     def _get_translation_from_part_of_speech_div(
         self, word_to_translate: str, part_of_speech_div: Tag
@@ -350,13 +350,13 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
             soup = await self._get_soup(self.link(word_to_translate))
         except ValueError:
             raise ValueError(
-                f"URL redirect occurred for '{word_to_translate}' - are you sure it is a valid {self.language_from.value.title()} word?"  # noqa: E501
+                f"URL redirect occurred for '{word_to_translate}' - are you sure it is a valid {self.language_from.value.title()} word?"
             )
         word_to_translate = soup.find("h1", class_="MskJYfNq").text  # type: ignore[union-attr]
         dictionary_neodict_div = soup.find("div", id=f"dictionary-neodict-{lang_from}")
         if not dictionary_neodict_div:
             raise ValueError(
-                f"Could not parse translation data for '{word_to_translate}' - are you sure it is a valid {self.language_from.value.title()} word?"  # noqa: E501
+                f"Could not parse translation data for '{word_to_translate}' - are you sure it is a valid {self.language_from.value.title()} word?"
             )
         part_of_speech_divs = dictionary_neodict_div.find_all(  # type: ignore[union-attr]
             class_="W4_X2sG1"
@@ -403,15 +403,15 @@ class CollinsWebsiteScraper(WebsiteScraper):
     lookup_key = "collins"
 
     def link(self, word_to_translate: str) -> str | None:
-        return f"{self.base_url}/{self.language_from.value}-{self.language_to.value}/{self._standardize(word_to_translate)}"  # noqa: E501
+        return f"{self.base_url}/{self.language_from.value}-{self.language_to.value}/{self._standardize(word_to_translate)}"
 
     def reverse_link(self, definition: str) -> str | None:
-        return f"{self.base_url}/{self.language_to.value}-{self.language_from.value}/{self._standardize(definition)}"  # noqa: E501
+        return f"{self.base_url}/{self.language_to.value}-{self.language_from.value}/{self._standardize(definition)}"
 
     def _get_translation_from_part_of_speech_div(
         self, word_to_translate: str, part_of_speech_div: Tag
     ) -> Translation | None:
-        part_of_speech = part_of_speech_div.find(class_=["hi", "rend-sc", "pos"]).text  # type: ignore[union-attr]  # noqa: E501
+        part_of_speech = part_of_speech_div.find(class_=["hi", "rend-sc", "pos"]).text  # type: ignore[union-attr]
         definition_divs: list[Tag] = part_of_speech_div.find_all("div", class_="sense")
         definitions: list[Definition] = []
         for definition_div in definition_divs:
@@ -448,7 +448,7 @@ class CollinsWebsiteScraper(WebsiteScraper):
         soup = await self._get_soup(self.link(word_to_translate))
         if soup.text.find("Enable JavaScript and cookies to continue") != -1:
             raise ValueError(
-                "Collins online Spanish dictionary remains scrape-resistant, owing to Cloudflare's anti-bot protection"  # noqa: E501
+                "Collins online Spanish dictionary remains scrape-resistant, owing to Cloudflare's anti-bot protection"
             )
         part_of_speech_divs = soup.find_all("div", class_="hom")
         all_translations: list[Translation] = []
@@ -495,19 +495,19 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
 
     def link(self, word_to_translate: str) -> str | None:
         if (self.language_from, self.language_to) == (Language.ENGLISH, Language.SPANISH):
-            return f"{self.base_url}/es/translation.asp?tranword={self._standardize(word_to_translate)}"  # noqa: E501
+            return f"{self.base_url}/es/translation.asp?tranword={self._standardize(word_to_translate)}"
         elif (self.language_from, self.language_to) == (Language.SPANISH, Language.ENGLISH):
             return (
                 f"{self.base_url}/es/en/translation.asp?spen={self._standardize(word_to_translate)}"
             )
-        return f"{self.base_url}/{self.lang_shortener[self.language_from]}{self.lang_shortener[self.language_to]}/{self._standardize(word_to_translate)}"  # noqa: E501
+        return f"{self.base_url}/{self.lang_shortener[self.language_from]}{self.lang_shortener[self.language_to]}/{self._standardize(word_to_translate)}"
 
     def reverse_link(self, definition: str) -> str | None:
         if (self.language_from, self.language_to) == (Language.ENGLISH, Language.SPANISH):
             return f"{self.base_url}/es/en/translation.asp?spen={self._standardize(definition)}"
         elif (self.language_from, self.language_to) == (Language.SPANISH, Language.ENGLISH):
             return f"{self.base_url}/es/translation.asp?tranword={self._standardize(definition)}"
-        return f"{self.base_url}/{self.lang_shortener[self.language_from]}{self.lang_shortener[self.language_to]}/{self._standardize(definition)}"  # noqa: E501
+        return f"{self.base_url}/{self.lang_shortener[self.language_from]}{self.lang_shortener[self.language_to]}/{self._standardize(definition)}"
 
     def _from_word_from_FrWrd_tag(self, FrWrd_tag: Tag) -> str:
         decompose_tags: list[Tag] = FrWrd_tag.find_all(["a", "span"])
@@ -529,7 +529,7 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
             if class_ not in ("even", "odd"):
                 continue
             rows: list[Tag] = list(grouper)
-            FrWrd_tag: Tag = next((row.find("td", class_="FrWrd") for row in rows), None)  # type: ignore  # noqa: E501
+            FrWrd_tag: Tag = next((row.find("td", class_="FrWrd") for row in rows), None)  # type: ignore
             pos_tag = next((row.find("em", class_="POS2") for row in rows), None)
             ToWrd_tag = next((row.find("td", class_="ToWrd") for row in rows), None)
             from_word = self._from_word_from_FrWrd_tag(FrWrd_tag)
@@ -542,7 +542,7 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
                 if not to_example:
                     to_example_tag: Tag = row.find("td", class_="ToEx")  # type: ignore[assignment]
                     if to_example_tag:
-                        tooltip_tag: Tag = to_example_tag.find("span", class_="tooltip")  # type: ignore[assignment]  # noqa: E501
+                        tooltip_tag: Tag = to_example_tag.find("span", class_="tooltip")  # type: ignore[assignment]
                         if tooltip_tag:
                             tooltip_tag.decompose()
                         to_example = to_example_tag.text.strip()
@@ -600,11 +600,11 @@ async def main(
         translations = await retriever.retrieve_translations(word_to_translate)
         s = ""
         for translation in translations:
-            s += f"{PC.GREEN}{translation.word_to_translate} {PC.CYAN}({translation.part_of_speech}){PC.GREEN} - {', '.join([definition.text for definition in translation.definitions])}{PC.RESET}"  # noqa: E501
+            s += f"{PC.GREEN}{translation.word_to_translate} {PC.CYAN}({translation.part_of_speech}){PC.GREEN} - {', '.join([definition.text for definition in translation.definitions])}{PC.RESET}"
             for definition in translation.definitions:
                 s += f"\n   {PC.YELLOW}{definition.text}{PC.RESET}"
                 for sentence_pair in definition.sentence_pairs:
-                    s += f"\n      {PC.BLUE}{sentence_pair.source_sentence}{PC.RESET} - {PC.PURPLE}{sentence_pair.target_sentence}{PC.RESET}"  # noqa: E501
+                    s += f"\n      {PC.BLUE}{sentence_pair.source_sentence}{PC.RESET} - {PC.PURPLE}{sentence_pair.target_sentence}{PC.RESET}"
             s += "\n\n"
         print(s)
     except Exception as e:

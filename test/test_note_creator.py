@@ -35,7 +35,7 @@ def field_values(deck_id: int) -> list[str]:
         "prueba",
         "<a href='https://www.example.com/translate/prueba' style='color:red;'>prueba</a>",
         "feminine noun",
-        "<a href='https://www.example.com/translate/test?langFrom=en' style='color:green;'>test</a>",  # noqa: E501
+        "<a href='https://www.example.com/translate/test?langFrom=en' style='color:green;'>test</a>",
         "Source sentence",
         "Target sentence",
     ]
@@ -85,7 +85,7 @@ def test_combine_sentences_single_sentence(note_creator: NoteCreator) -> None:
 
 def test_combine_sentences_multiple_sentences(note_creator: NoteCreator) -> None:
     sentences = ["First sentence.", "Second sentence."]
-    expected_combined = "<span style='color: darkgray'>[1]</span> First sentence.<br><span style='color: darkgray'>[2]</span> Second sentence."  # noqa: E501
+    expected_combined = "<span style='color: darkgray'>[1]</span> First sentence.<br><span style='color: darkgray'>[2]</span> Second sentence."
     combined = note_creator._combine_sentences(sentences)
     assert combined == expected_combined
 

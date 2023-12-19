@@ -76,7 +76,7 @@ class AnkiPackageSource(Source):
         model_field_names = [f["name"]["name"] for f in model.fields]
         if self.field_name not in model_field_names:
             raise ValueError(
-                f"Field '{self.field_name}' not found in model. Available fields: {model_field_names}"  # noqa: E501
+                f"Field '{self.field_name}' not found in model. Available fields: {model_field_names}"
             )
         field_index = model_field_names.index(self.field_name)
         words_to_translate = []
@@ -129,7 +129,7 @@ def main(args: argparse.Namespace) -> None:
             source = CSVSource(file_path=args.csv)
         else:
             raise ValueError(
-                "Must provide either --words, --anki-package-path, --anki-deck-name and --anki-field-name, or --csv"  # noqa: E501
+                "Must provide either --words, --anki-package-path, --anki-deck-name and --anki-field-name, or --csv"
             )
         print(f"Getting words from {source.__class__.__name__}")
         print()
@@ -143,7 +143,7 @@ def main(args: argparse.Namespace) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Ingest and print words from a source. Provide either --words, --anki-package-path or --csv as a source of words"  # noqa: E501
+        description="Ingest and print words from a source. Provide either --words, --anki-package-path or --csv as a source of words"
     )
     parser.add_argument("--words", nargs="+", default=[], help="Words to translate")
     parser.add_argument(
