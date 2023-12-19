@@ -230,7 +230,7 @@ class OpenAIAPIRetriever(APIRetriever):
                             language_from=self.language_from.value,
                             language_to=self.language_to.value,
                             word_to_translate=word_to_translate,
-                        )
+                        ),
                     },
                 ],
             )
