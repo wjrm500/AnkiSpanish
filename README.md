@@ -4,7 +4,7 @@
 
 ## Basic usage and concepts
 
-Firstly, run `git clone https://github.com/wjrm500/LexiDeck.git` to clone the repository onto your local machine. Then from within the repository, run either `pip install .` for a standard installation of the program, or `pip install -e .[dev]` for a dev installation. You can confirm the installation worked by running `lexideck --version` in your terminal - the output should be `lexideck v1.0.0`.
+Firstly, run `git clone https://github.com/wjrm500/LexiDeck.git` to clone the repository onto your local machine. Then from within the repository, run either `pip install .` for a standard installation of the program, or `pip install -e .[dev]` for a dev installation. You can confirm the installation worked by running `lexideck --version` in your terminal - the output should be `lexideck 1.0.0`.
 
 Now, let's say we want to create a deck of Spanish -> English flashcards. In the first instance, we'll only add a single word *hola*. We can do this by running the program like so:
 
