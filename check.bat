@@ -10,22 +10,22 @@ call "%VENV_PATH%"
 
 REM Run isort
 echo Running isort...
-isort .\src .\test --check-only > NUL 2>&1
+isort .\app .\test --check-only > NUL 2>&1
 IF %ERRORLEVEL% EQU 0 (echo SUCCESS) ELSE (echo FAILURE)
 
 REM Run black
 echo Running black...
-black .\src .\test --check > NUL 2>&1
+black .\app .\test --check > NUL 2>&1
 IF %ERRORLEVEL% EQU 0 (echo SUCCESS) ELSE (echo FAILURE)
 
 REM Run flake8
 echo Running flake8...
-flake8 .\src .\test > NUL 2>&1
+flake8 .\app .\test > NUL 2>&1
 IF %ERRORLEVEL% EQU 0 (echo SUCCESS) ELSE (echo FAILURE)
 
 REM Run mypy
 echo Running mypy...
-mypy .\src --strict > NUL 2>&1
+mypy .\app --strict > NUL 2>&1
 IF %ERRORLEVEL% EQU 0 (echo SUCCESS) ELSE (echo FAILURE)
 
 REM Run pytest
