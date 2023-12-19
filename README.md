@@ -101,13 +101,11 @@ Retrievers are the mechanism through which translations and example sentences ar
 - `spanishdict` - this retriever scrapes translations and examples from [SpanishDict](https://www.spanishdict.com/). It is accurate and comprehensive, and should be your go-to retriever for generating English -> Spanish or Spanish -> English decks. The website is rate-limited, although LexiDeck handles rate limiting smoothly.
 
     Available language pairs:
-    
     - English -> Spanish (and *vice versa*)
 
--  `wordreference` - this retriever scrapes translations and examples from [WordReference.com](https://www.wordreference.com/). It is less reliable than SpanishDict, but offers a wide language selection and no rate limiting.
+-  `wordreference` - this retriever scrapes translations and examples from [WordReference.com](https://www.wordreference.com/). It is less reliable than SpanishDict, but offers a wide language selection. This website will sometimes throw a captcha - in these cases, LexiDeck will pause processing and request manual intervention before proceeding.
 
     Available language pairs:
-
     - English -> French (and *vice versa*)
     - English -> German (and *vice versa*)
     - English -> Italian (and *vice versa*)
@@ -118,6 +116,58 @@ Retrievers are the mechanism through which translations and example sentences ar
     - Italian -> Spanish (and *vice versa*)
     - Portuguese -> Spanish (and *vice versa*)
 
-For a comprehensive list of arguments, run:
+- `collins` - this retriever scrapes translations and examples from [Collins Online Dictionary](https://www.collinsdictionary.com/dictionary) - or rather, it would if Collins hadn't cleverly protected themselves from scraping using Cloudflare anti-bot protection. To clarify, this retriever **currently works only in theory, not in practice**.
+
+    Available language pairs (in theory):
+    - English -> French (and *vice versa*)
+    - English -> German (and *vice versa*)
+    - English -> Italian (and *vice versa*)
+    - English -> Portuguese (and *vice versa*)
+    - English -> Spanish (and *vice versa*)
+
+- `openai` - this retriever makes calls to OpenAI's models through the company's API, with models including GPT-3.5 or GPT-4 currently available. As OpenAI APIs are paid, you will need to [create an API key](https://platform.openai.com/docs/quickstart?context=python) and add it to an `.env` file (see `.env.example` for format). It can be a (very) slow and costly alternative to web scraping, but depending on the model the results can be excellent, and the language choice is theoretically unlimited. At this stage this retriever is more experimental than genuinely useful, but future changes to the API might change that. Bear in mind that you will be asked to specify which OpenAI model you wish to use when you use this retriever type. 
+
+    Available language pairs:
+    - **Unlimited**
+
+The `--language-from` and `--language-to` arguments are used to help the retriever retrieve the right data. If you enter a language pairing that the specified `--retriever-type` does not support, LexiDeck will inform you and exit immediately.
+
+The `--concise-mode` argument basically reduces the number of notes produced, as well as the amount of text in individual notes, by pruning translations and definitions. It is particularly effective in combination with the `spanishdict` retriever type: SpanishDict makes it clear which are the "principal" translations for a given word, and this information can be used to prune translations or definitions that do not correspond to these principal translations.
+
+Some example commands:
+
+`lexideck --words hello --language-from english --language-to german --retriever-type wordreference --verbose`
+
+![Alt text](images/wr_spider_cli.png)
+
+![Alt text](images/wr_spider_anki_note.png)
+
+`lexideck --words adelante --language-from spanish --language-to italian --retriever-type openai --verbose`
+
+![Alt text](images/openai_adelante_cli.png)
+
+![Alt text](images/openai_adelante_anki_note_1.png)
+
+![Alt text](images/openai_adelante_anki_note_2.png)
+
+![Alt text](images/openai_adelante_anki_note_3.png)
+
+# Additional notes
+
+If you are interested in the inner workings of the application, feel free to check out the source code under the `app` directory. Most classes and methods are documented quite descriptively.
+
+Arguments not explicitly mentioned so far include `--concurrency-limit`, `--output-anki-package-path`, `--output-anki-deck-name`, `--note-limit` and `--verbose`. For more information on these and a comprehensive list of all available arguments, please run:
 
 `lexideck --help`
+
+# Get involved
+
+This project is completely open source and contributions are welcome! Just open a pull request and write a concise description of the change you've made and why, and I'll take a look. Off the top of my head, I would be interested to see:
+
+- New sources that ingest words from databases
+- Improvements to the accuracy and robustness of existing retrievers
+- New retrievers, preferably web scrapers for online dictionaries, although API-based retrievers could also be interesting
+- Better handling of redirect errors in NoteCreator AKA not simply discarding words that fail due to captcha check
+- More tests!
+
+I would also be very interested to hear about any larger, architectural changes you have in mind, although in these cases it would be best to contact me to discuss before beginning development.
