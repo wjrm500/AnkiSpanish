@@ -6,7 +6,7 @@ from genanki import Note as AnkiNote
 
 from app.dictionary import Dictionary
 from app.genanki_extension import load_decks_from_package
-from app.main import main
+from app.main import create_deck
 from app.note_creator import NoteCreator, model
 from app.retriever import SpanishDictWebsiteScraper
 
@@ -14,7 +14,7 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 @pytest.mark.asyncio
-async def test_main() -> None:
+async def test_create_deck() -> None:
     anki_package_path = os.path.join(SCRIPT_DIR, "test.apkg")
     try:
         # Delete output.apkg if it exists
@@ -59,8 +59,8 @@ async def test_main() -> None:
             concurrency_limit=1,
         )
         note_creator.rate_limited_create_notes = AsyncMock(side_effect=list(mock_notes.values()))
-        with patch("main.NoteCreator", return_value=note_creator):
-            await main(
+        with patch("app.main.NoteCreator", return_value=note_creator):
+            await create_deck(
                 words_to_translate=["hola", "adiós"],
                 retriever=MagicMock(spec=SpanishDictWebsiteScraper),
                 concurrency_limit=1,
