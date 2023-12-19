@@ -36,16 +36,24 @@ class OpenAIModel(enum.Enum):
         return [v.value for v in OpenAIModel.__members__.values()]
 
 
-OPEN_AI_SYSTEM_PROMPT = """
-You are a {x} to {y} dictionary. You are given a {x} word and must provide a list of translations,
-with one translation for each part of speech (e.g., noun, verb, adjective, etc.). For each
-translation, you must provide a list of one or more definitions, and for each definition, you must
-provide a list of one or more sentence pairs, where each sentence pair consists of a sentence in {x}
-and the same sentence translated into {y}.
+OPENAI_SYSTEM_PROMPT = """
+You are a {language_from} to {language_to} dictionary. You are given a {language_from} word and must
+provide a list of translations, with one translation for each part of speech (e.g., noun, verb,
+adjective, etc.). For each translation, you must provide a list of one or more definitions, and for
+each definition, you must provide a list of one or more sentence pairs, where each sentence pair
+consists of a sentence in {language_from} and the same sentence translated into {language_to}.
 
-Below is an example of the response format I expect. Let's use the Spanish language and the word
-"amanecer" as an example. My prompt would be "Spanish: amanecer", and your response would be:
-{{
+Below is an example of the response format I expect. Let's translate from Spanish to English and
+use the word "amanecer" as an example. My prompt would be:
+
+`
+Language from: Spanish
+Language to: English
+Word to translate: amanecer
+`
+
+And your response would be:
+`{{
     "translations": [
         {{
             "word_to_translate": "amanecer",
@@ -102,5 +110,37 @@ Below is an example of the response format I expect. Let's use the Spanish langu
             ]
         }}
     ]
-}}
+}}`
+
+For our second example, we'll translate from Spanish to German and use the word "miércoles". My
+prompt would be:
+
+`
+Language from: Spanish
+Language to: German
+Word to translate: miércoles
+`
+
+And your response would be:
+`{{
+    "translations": [
+        {{
+            "word_to_translate": "miércoles",
+            "part_of_speech": "noun",
+            "definitions": [
+                {{
+                    "text": "Mittwoch",
+                    "sentence_pairs": [
+                        {{
+                            "source_sentence": "El miércoles nos vemos, ¿cierto?",
+                            "target_sentence": "Wir sehen uns am Mittwoch, oder?"
+                        }}
+                    ]
+                }}
+            ]
+        }}
+    ]
+}}`
+
+Notice that the response format uses English field names regardless of the language pair.
 """
