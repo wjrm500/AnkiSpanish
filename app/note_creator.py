@@ -50,7 +50,10 @@ class NoteCreator:
         self.rate_limit_event = asyncio.Event()
         self.rate_limit_event.set()  # Setting the event allows all coroutines to proceed
         self.rate_limit_handling_event = asyncio.Event()
-        self.semaphore = asyncio.Semaphore(concurrency_limit)
+        adjusted_concurrency_limit = min(max(concurrency_limit, 1), 5)  # Limit to 1-5
+        if concurrency_limit != adjusted_concurrency_limit:
+            logger.warning(f"Concurrency limit adjusted to {adjusted_concurrency_limit}")
+        self.semaphore = asyncio.Semaphore(adjusted_concurrency_limit)
 
     def _combine_sentences(self, sentences: list[str]) -> str:
         """

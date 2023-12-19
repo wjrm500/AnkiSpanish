@@ -139,7 +139,9 @@ def main() -> None:
         "--concurrency-limit",
         type=int,
         default=1,
-        help="Number of coroutines to run concurrently",
+        min=1,
+        max=5,
+        help="Number of coroutines to run concurrently, minimum of 1, maximum of 5. Defaults to 1",
     )
     parser.add_argument(
         "--note-limit", type=int, default=0, help="Maximum number of notes to create"
@@ -215,6 +217,7 @@ def main() -> None:
             args.output_anki_deck_name,
         )
     )
+
 
 if __name__ == "__main__":
     main()
