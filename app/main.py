@@ -13,6 +13,7 @@ from app.log import DEBUG, logger
 from app.note_creator import NoteCreator
 from app.retriever import Retriever, RetrieverFactory
 from app.source import AnkiPackageSource, CSVSource, SimpleSource, Source
+from setuptools_scm import get_version
 
 
 async def create_deck(
@@ -194,7 +195,13 @@ def main() -> None:
     misc_group.add_argument(
         "-nl", "--note-limit", type=int, default=0, help="Maximum number of notes to create"
     )
-    misc_group.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging")
+    misc_group.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    misc_group.add_argument(
+        "--version",
+        action="version",
+        version=f"lexideck {get_version()}",
+        help="Show version number and exit",
+    )
 
     args = parser.parse_args()
 

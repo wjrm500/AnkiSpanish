@@ -24,7 +24,6 @@ idna==3.6
 iniconfig==2.0.0
 isort==5.13.2
 joblib==1.3.2
--e git+https://github.com/wjrm500/LexiDeck.git@ed2ee6b2ef0d5328fa13dff00156008f0c705d6e#egg=lexideck
 mccabe==0.7.0
 multidict==6.0.4
 mypy==1.7.1
@@ -44,6 +43,7 @@ pytest-asyncio==0.23.2
 python-dotenv==1.0.0
 PyYAML==6.0.1
 regex==2023.10.3
+setuptools-scm==8.0.4
 sniffio==1.3.0
 soupsieve==2.5
 tqdm==4.66.1
