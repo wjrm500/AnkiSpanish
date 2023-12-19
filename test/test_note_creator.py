@@ -1,10 +1,10 @@
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from app.dictionary import Dictionary
-from app.exception import RateLimitException
+from app.exception import RateLimitException, RedirectException
 from app.language_element import Definition, SentencePair, Translation
 from app.note_creator import NoteCreator
 from app.retriever import Retriever
@@ -130,6 +130,35 @@ async def test_rate_limited_create_notes_with_rate_limit_exception(
     assert asyncio.sleep.call_count == 1
     assert note_creator.dictionary.retriever.rate_limited.call_count == 1
     assert note_creator.dictionary.translate.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_rate_limited_create_notes_with_redirect_exception(
+    field_values: list[str], note_creator: NoteCreator, translation: Translation
+) -> None:
+    # Setup
+    original_url = "https://www.example.com/translate/prueba"
+    redirect_url = "https://www.example.com/redirect"
+    exception = RedirectException(
+        message=f"URL redirected from {original_url} to {redirect_url}",
+        response_url=redirect_url,
+    )
+    side_effect = [exception] * 6 + [[translation]]
+    note_creator.dictionary.translate = AsyncMock(side_effect=side_effect)
+
+    # Increment redirect count to 5, then manually intervene
+    for _ in range(5):
+        await note_creator.rate_limited_create_notes("prueba")
+    assert note_creator.redirect_count == 5
+    with patch("builtins.input", return_value="\r") as mock_input:
+        await note_creator.rate_limited_create_notes("prueba")
+    mock_input.assert_called_once()
+    assert note_creator.redirect_count == 0
+
+    # Check that normal processing continues after manual intervention
+    notes = await note_creator.rate_limited_create_notes("prueba")
+    assert len(notes) == 1
+    assert notes[0].fields == field_values
 
 
 @pytest.mark.asyncio
