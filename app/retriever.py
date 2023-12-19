@@ -168,6 +168,8 @@ class OpenAIAPIRetriever(APIRetriever):
         super().__init__(language_from=language_from, language_to=language_to)
         load_dotenv()
         self.api_key = os.getenv("OPENAI_API_KEY")
+        if not self.api_key:
+            raise Exception("No OpenAI API key found - please set OPENAI_API_KEY in .env")
         self.client = AsyncOpenAI(api_key=self.api_key)
 
     def set_language_from(self) -> None:

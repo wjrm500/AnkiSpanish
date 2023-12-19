@@ -1,5 +1,4 @@
 venv/
-venv-dev/
 .vscode/
 __pycache__/
 lexideck.egg-info/

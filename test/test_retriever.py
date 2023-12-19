@@ -2,7 +2,7 @@ import json
 import os
 from http import HTTPStatus
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from aioresponses import aioresponses
@@ -83,11 +83,12 @@ def test_standardize(mock_retriever: Retriever) -> None:
 
 
 def test_retriever_factory():
-    openai_retriever = RetrieverFactory.create_retriever(
-        retriever_type=OpenAIAPIRetriever.lookup_key,
-        language_from=Language.SPANISH,
-        language_to=Language.ENGLISH,
-    )
+    with patch("os.getenv", return_value="mock_api_key"):
+        openai_retriever = RetrieverFactory.create_retriever(
+            retriever_type=OpenAIAPIRetriever.lookup_key,
+            language_from=Language.SPANISH,
+            language_to=Language.ENGLISH,
+        )
     assert isinstance(openai_retriever, OpenAIAPIRetriever)
     collins_retriever = RetrieverFactory.create_retriever(
         retriever_type=CollinsWebsiteScraper.lookup_key,
@@ -101,6 +102,12 @@ def test_retriever_factory():
         language_to=Language.ENGLISH,
     )
     assert isinstance(spanishdict_retriever, SpanishDictWebsiteScraper)
+    wordreference_retriever = RetrieverFactory.create_retriever(
+        retriever_type=WordReferenceWebsiteScraper.lookup_key,
+        language_from=Language.SPANISH,
+        language_to=Language.ENGLISH,
+    )
+    assert isinstance(wordreference_retriever, WordReferenceWebsiteScraper)
     with pytest.raises(ValueError):
         RetrieverFactory.create_retriever(
             retriever_type="unknown",
@@ -333,7 +340,8 @@ async def test_openai_api_retriever() -> None:
 
     mock_openai_client = AsyncMock()
     mock_openai_client.chat.completions.create.return_value = mock_openai_response
-    retriever = OpenAIAPIRetriever(language_from=Language.SPANISH, language_to=Language.ENGLISH)
+    with patch("os.getenv", return_value="mock_api_key"):
+        retriever = OpenAIAPIRetriever(language_from=Language.SPANISH, language_to=Language.ENGLISH)
     retriever.client = mock_openai_client
     retriever.language = Language.SPANISH
     retriever.model = OpenAIModel.GPT_4_TURBO

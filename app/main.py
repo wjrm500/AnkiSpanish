@@ -5,6 +5,7 @@ import random
 from genanki import Deck as AnkiDeck
 from genanki import Note as AnkiNote
 from genanki import Package as AnkiPackage
+from setuptools_scm import get_version
 
 from app.constant import Language
 from app.constant import PrintColour as PC
@@ -13,7 +14,6 @@ from app.log import DEBUG, logger
 from app.note_creator import NoteCreator
 from app.retriever import Retriever, RetrieverFactory
 from app.source import AnkiPackageSource, CSVSource, SimpleSource, Source
-from setuptools_scm import get_version
 
 
 async def create_deck(
@@ -241,7 +241,7 @@ def main() -> None:
             language_to=args.language_to,
             concise_mode=args.concise_mode,
         )
-    except ValueError as e:
+    except Exception as e:
         logger.error(e)
         exit(1)
 
