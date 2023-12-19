@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from retriever import Retriever
+    from app.retriever import Retriever
 
-from synonym import SynonymChecker
+from app.synonym import SynonymChecker
 
 
 def truncate_string(string: str, max_length: int = 20) -> str:

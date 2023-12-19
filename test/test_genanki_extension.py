@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from genanki_extension import load_decks_from_package
+from app.genanki_extension import load_decks_from_package
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_GENANKI_EXTENSION_DIR = SCRIPT_DIR + "/data/test_genanki_extension/"

@@ -3,11 +3,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from dictionary import Dictionary
-from exception import RateLimitException
-from language_element import Definition, SentencePair, Translation
-from note_creator import NoteCreator
-from retriever import Retriever
+from app.dictionary import Dictionary
+from app.exception import RateLimitException
+from app.language_element import Definition, SentencePair, Translation
+from app.note_creator import NoteCreator
+from app.retriever import Retriever
 
 
 @pytest.fixture

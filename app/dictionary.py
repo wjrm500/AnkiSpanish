@@ -1,5 +1,5 @@
-from language_element import Translation
-from retriever import Retriever
+from app.language_element import Translation
+from app.retriever import Retriever
 
 
 class Dictionary:

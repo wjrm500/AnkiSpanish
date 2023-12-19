@@ -2,6 +2,7 @@ venv/
 venv-dev/
 .vscode/
 __pycache__/
+lexideck.egg-info/
 source_code.txt
 todos.txt
 .env

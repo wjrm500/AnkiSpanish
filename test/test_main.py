@@ -4,11 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from genanki import Note as AnkiNote
 
-from dictionary import Dictionary
-from genanki_extension import load_decks_from_package
-from main import main
-from note_creator import NoteCreator, model
-from retriever import SpanishDictWebsiteScraper
+from app.dictionary import Dictionary
+from app.genanki_extension import load_decks_from_package
+from app.main import main
+from app.note_creator import NoteCreator, model
+from app.retriever import SpanishDictWebsiteScraper
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 

@@ -16,11 +16,11 @@ from bs4.element import Tag
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
-from constant import OPEN_AI_SYSTEM_PROMPT, Language, OpenAIModel
-from constant import PrintColour as PC
-from exception import RateLimitException
-from language_element import Definition, SentencePair, Translation
-from log import logger
+from app.constant import OPEN_AI_SYSTEM_PROMPT, Language, OpenAIModel
+from app.constant import PrintColour as PC
+from app.exception import RateLimitException
+from app.language_element import Definition, SentencePair, Translation
+from app.log import logger
 
 
 class Retriever(abc.ABC):
@@ -135,7 +135,6 @@ class WebsiteScraper(Retriever, abc.ABC):
             await self.start_session()
         assert self.session
         async with self.session.get(url) as response:
-            logger.debug(f"GET request made to {url}")
             self.requests_made += 1
             if response.status == HTTPStatus.TOO_MANY_REQUESTS:
                 raise RateLimitException()
@@ -335,6 +334,9 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
             retriever=self,
         )  # Don't want to specify max_definitions as quickdef definitions may be lost
 
+    def _strip_article(self, word: str) -> str:
+        return re.sub(r"^(el|la|el/la)\s+", "", word, flags=re.IGNORECASE)
+
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         """
         Retrieves translations for a given word by accessing the dictionary page for the word, and
@@ -348,6 +350,7 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
             raise ValueError(
                 f"URL redirect occurred for '{word_to_translate}' - are you sure it is a valid {self.language_from.value.title()} word?"  # noqa: E501
             )
+        word_to_translate = soup.find("h1", class_="MskJYfNq").text  # type: ignore[union-attr]
         dictionary_neodict_div = soup.find("div", id=f"dictionary-neodict-{lang_from}")
         if not dictionary_neodict_div:
             raise ValueError(
@@ -369,15 +372,13 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
             )
             quickdefs = [(a.text if (a := d.find("a")) else d.text) for d in quickdef_divs]
             quickdef_translations: set[Translation] = set()
-            for quickdef in quickdefs:
-                for translation in all_translations:
-                    if quickdef in (d.text for d in translation.definitions):
-                        quickdef_translations.add(translation)
-                        break
-            for quickdef_translation in quickdef_translations:
-                quickdef_translation.definitions = [
-                    d for d in quickdef_translation.definitions if d.text in quickdefs
+            for translation in all_translations:
+                translation.definitions = [
+                    d for d in translation.definitions
+                    if any(self._strip_article(d.text) == self._strip_article(q) for q in quickdefs)
                 ]
+                if translation.definitions:
+                    quickdef_translations.add(translation)
             all_translations = list(quickdef_translations)
         return all_translations
 

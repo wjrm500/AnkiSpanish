@@ -1,4 +1,4 @@
-from synonym import SynonymChecker
+from app.synonym import SynonymChecker
 
 
 def test_get_synonyms():

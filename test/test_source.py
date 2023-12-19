@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from source import AnkiPackageSource, CSVSource, SimpleSource
+from app.source import AnkiPackageSource, CSVSource, SimpleSource
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_SOURCE_DIR = SCRIPT_DIR + "/data/test_source/"

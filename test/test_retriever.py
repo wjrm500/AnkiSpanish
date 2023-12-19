@@ -8,9 +8,9 @@ import pytest
 from aioresponses import aioresponses
 from bs4 import BeautifulSoup
 
-from constant import Language, OpenAIModel
-from language_element import Definition, SentencePair, Translation
-from retriever import (
+from app.constant import Language, OpenAIModel
+from app.language_element import Definition, SentencePair, Translation
+from app.retriever import (
     CollinsWebsiteScraper,
     OpenAIAPIRetriever,
     Retriever,
