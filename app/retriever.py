@@ -18,7 +18,7 @@ from openai import AsyncOpenAI
 
 from app.constant import OPEN_AI_SYSTEM_PROMPT, Language, OpenAIModel
 from app.constant import PrintColour as PC
-from app.exception import RateLimitException
+from app.exception import RateLimitException, RedirectException
 from app.language_element import Definition, SentencePair, Translation
 
 
@@ -138,7 +138,10 @@ class WebsiteScraper(Retriever, abc.ABC):
             if response.status == HTTPStatus.TOO_MANY_REQUESTS:
                 raise RateLimitException()
             if (response_url := str(response.url)) != url:
-                raise ValueError(f"URL redirected from {url} to {response_url}")
+                raise RedirectException(
+                    message=f"URL redirected from {url} to {response_url}",
+                    response_url=response_url,
+                )
             return BeautifulSoup(await response.text(), "html.parser")
 
 

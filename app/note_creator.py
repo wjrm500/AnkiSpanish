@@ -4,7 +4,7 @@ from genanki import Model as AnkiModel
 from genanki import Note as AnkiNote
 
 from app.dictionary import Dictionary
-from app.exception import RateLimitException
+from app.exception import RateLimitException, RedirectException
 from app.language_element import Translation
 from app.log import logger
 
@@ -44,6 +44,10 @@ class NoteCreator:
     rate_limit_handling_event: asyncio.Event
     semaphore: asyncio.Semaphore
 
+    # Handling redirect loops
+    redirect_lock: asyncio.Lock
+    redirect_count: int
+
     def __init__(self, deck_id: int, dictionary: Dictionary, concurrency_limit: int = 1) -> None:
         self.deck_id = deck_id
         self.dictionary = dictionary
@@ -54,6 +58,8 @@ class NoteCreator:
         if concurrency_limit != adjusted_concurrency_limit:
             logger.warning(f"Concurrency limit adjusted to {adjusted_concurrency_limit}")
         self.semaphore = asyncio.Semaphore(adjusted_concurrency_limit)
+        self.redirect_lock = asyncio.Lock()
+        self.redirect_count = 0
 
     def _combine_sentences(self, sentences: list[str]) -> str:
         """
@@ -131,7 +137,8 @@ class NoteCreator:
         A wrapper and interface for the note creation method create_notes. This wrapper method
         provides rate limiting functionality, allowing only a certain number of coroutines to access
         the dictionary at a time. If a rate limit is detected, the coroutines will wait until the
-        rate limit has been lifted before proceeding. This method also handles general exceptions.
+        rate limit has been lifted before proceeding. This method also handles multiple consecutive
+        redirects, which can occur for example when the website throws a captcha.
         """
         async with self.semaphore:
             try:
@@ -158,6 +165,16 @@ class NoteCreator:
                     # Wait for the first coroutine to finish handling the rate limit
                     await self.rate_limit_event.wait()
                 return await self.create_notes(word_to_translate)
+            except RedirectException as e:
+                logger.error(f"Error processing '{word_to_translate}': {e}")
+                async with self.redirect_lock:
+                    self.redirect_count += 1
+                    if self.redirect_count > 5:
+                        input(
+                            f"Redirect loop detected. Visit {e.response_url} to manually intervene, and then hit enter to continue"  # noqa: E501
+                        )
+                        self.redirect_count = 0
+                return []
             except Exception as e:
                 logger.error(f"Error processing '{word_to_translate}': {e}")
                 return []
