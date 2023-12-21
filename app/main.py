@@ -1,6 +1,10 @@
 import argparse
 import asyncio
+import os
 import random
+import re
+from datetime import datetime
+from functools import partial
 
 from genanki import Deck as AnkiDeck
 from genanki import Note as AnkiNote
@@ -14,6 +18,31 @@ from app.log import DEBUG, logger
 from app.note_creator import NoteCreator
 from app.retriever import Retriever, RetrieverFactory
 from app.source import AnkiPackageSource, CSVSource, SimpleSource, Source
+
+
+def valid_input_path(file_extension: str, path: str) -> str:
+    assert re.match(r"\.\w{1,5}$", file_extension), "Invalid file extension format"
+
+    if not os.path.isfile(path):  # Check if the file exists
+        raise argparse.ArgumentTypeError(f"File {path} does not exist.")
+
+    if not path.lower().endswith(file_extension):  # Check if the file has the correct extension
+        raise argparse.ArgumentTypeError(f"The file must have a {file_extension} extension")
+
+    return path
+
+
+def valid_output_anki_package_path(path: str) -> str:
+    if not os.path.isdir(os.path.dirname(path)):  # Check if the directory of the file exists
+        raise argparse.ArgumentTypeError(f"Directory {os.path.dirname(path)} does not exist.")
+
+    if os.path.isdir(path):  # Check if the path is not a directory
+        raise argparse.ArgumentTypeError(f"{path} is a directory.")
+
+    if not path.lower().endswith(".apkg"):  # Check if the file has a .apkg extension
+        raise argparse.ArgumentTypeError("The file must have a .apkg extension")
+
+    return path
 
 
 async def create_deck(
@@ -96,12 +125,14 @@ def main() -> None:
     )
 
     # Source arguments
+    valid_csv = partial(valid_input_path, ".csv")
+    valid_anki_package = partial(valid_input_path, ".apkg")
     source_group = parser.add_argument_group(title="Source arguments")
     source_group.add_argument("--words", nargs="+", default=[], help="Words to translate")
     source_group.add_argument(
         "--input-anki-package-path",
-        type=str,
-        default="",
+        type=valid_anki_package,
+        default=None,
         help="Path to Anki package (.apkg) file containing words to translate",
     )
     source_group.add_argument(
@@ -117,7 +148,10 @@ def main() -> None:
         help="Name of field inside note inside deck inside Anki package containing words to translate",
     )
     source_group.add_argument(
-        "--csv", type=str, default="", help="Path to CSV (.csv) file containing words to translate"
+        "--csv",
+        type=valid_csv,
+        default=None,
+        help="Path to CSV (.csv) file containing words to translate",
     )
     source_group.add_argument(
         "--skip-first-row",
@@ -178,15 +212,15 @@ def main() -> None:
     output_group.add_argument(
         "-op",
         "--output-anki-package-path",
-        type=str,
-        default="output.apkg",
+        type=valid_output_anki_package_path,
+        default=None,
         help="Path to output Anki package (.apkg) file",
     )
     output_group.add_argument(
         "-od",
         "--output-anki-deck-name",
         type=str,
-        default="Language learning flashcards",
+        default="",
         help="Name of deck inside output Anki package (.apkg) file",
     )
 
@@ -244,6 +278,12 @@ def main() -> None:
     except Exception as e:
         logger.error(e)
         exit(1)
+
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    if not args.output_anki_package_path:
+        args.output_anki_package_path = f"{args.language_from.value}-{args.language_to.value}-{args.retriever_type}-{current_date}.apkg"
+    if not args.output_anki_deck_name:
+        args.output_anki_deck_name = f"{args.language_from.value.capitalize()} to {args.language_to.value.capitalize()} ({args.retriever_type} - {current_date})"
 
     if args.verbose:
         logger.setLevel(DEBUG)

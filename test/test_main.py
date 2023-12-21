@@ -1,4 +1,6 @@
+import argparse
 import os
+import tempfile
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -6,11 +8,46 @@ from genanki import Note as AnkiNote
 
 from app.dictionary import Dictionary
 from app.genanki_extension import load_decks_from_package
-from app.main import create_deck
+from app.main import create_deck, valid_input_path, valid_output_anki_package_path
 from app.note_creator import NoteCreator, model
 from app.retriever import SpanishDictWebsiteScraper
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+
+def test_valid_input_path():
+    with tempfile.NamedTemporaryFile(mode="w+", suffix=".csv", delete=True) as temp_file:
+        assert valid_input_path(".csv", temp_file.name) == temp_file.name
+
+
+def test_invalid_input_path_nonexistent_file():
+    with pytest.raises(argparse.ArgumentTypeError):
+        valid_input_path(".csv", "nonexistent.csv")
+
+
+def test_invalid_input_path_wrong_extension():
+    with tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=True) as temp_file:
+        with pytest.raises(argparse.ArgumentTypeError):
+            valid_input_path(".csv", temp_file.name)
+
+
+def test_valid_output_anki_package_path():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        valid_output_path = f"{temp_dir}/output.apkg"
+        assert valid_output_anki_package_path(valid_output_path) == valid_output_path
+
+
+def test_invalid_output_anki_package_path_nonexistent_dir():
+    nonexistent_dir_path = "/nonexistent_dir/output.apkg"
+    with pytest.raises(argparse.ArgumentTypeError):
+        valid_output_anki_package_path(nonexistent_dir_path)
+
+
+def test_invalid_output_anki_package_path_wrong_extension():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        invalid_output_path = f"{temp_dir}/output.txt"
+        with pytest.raises(argparse.ArgumentTypeError):
+            valid_output_anki_package_path(invalid_output_path)
 
 
 @pytest.mark.asyncio
