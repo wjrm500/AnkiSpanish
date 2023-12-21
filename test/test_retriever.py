@@ -15,6 +15,7 @@ from app.retriever import (
     OpenAIAPIRetriever,
     Retriever,
     RetrieverFactory,
+    RetrieverType,
     SpanishDictWebsiteScraper,
     WebsiteScraper,
     WordReferenceWebsiteScraper,
@@ -37,6 +38,10 @@ def mock_retriever(mock_url: str) -> Retriever:
         ]
         base_url: str = mock_url
 
+        @staticmethod
+        def name() -> str:
+            return "Test Retriever"
+
         async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
             return []
 
@@ -50,6 +55,10 @@ def mock_website_scraper(mock_url: str) -> WebsiteScraper:
             (Language.SPANISH, Language.ENGLISH)
         ]
         base_url: str = mock_url
+
+        @staticmethod
+        def name() -> str:
+            return "Test Retriever"
 
         async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
             return []
@@ -83,37 +92,31 @@ def test_standardize(mock_retriever: Retriever) -> None:
 
 
 def test_retriever_factory():
-    with patch("os.getenv", return_value="mock_api_key"):
-        openai_retriever = RetrieverFactory.create_retriever(
-            retriever_type=OpenAIAPIRetriever.lookup_key,
-            language_from=Language.SPANISH,
-            language_to=Language.ENGLISH,
-        )
-    assert isinstance(openai_retriever, OpenAIAPIRetriever)
     collins_retriever = RetrieverFactory.create_retriever(
-        retriever_type=CollinsWebsiteScraper.lookup_key,
+        retriever_type=RetrieverType.COLLINS,
         language_from=Language.SPANISH,
         language_to=Language.ENGLISH,
     )
     assert isinstance(collins_retriever, CollinsWebsiteScraper)
+    with patch("os.getenv", return_value="mock_api_key"):
+        openai_retriever = RetrieverFactory.create_retriever(
+            retriever_type=RetrieverType.OPENAI,
+            language_from=Language.SPANISH,
+            language_to=Language.ENGLISH,
+        )
+    assert isinstance(openai_retriever, OpenAIAPIRetriever)
     spanishdict_retriever = RetrieverFactory.create_retriever(
-        retriever_type=SpanishDictWebsiteScraper.lookup_key,
+        retriever_type=RetrieverType.SPANISHDICT,
         language_from=Language.SPANISH,
         language_to=Language.ENGLISH,
     )
     assert isinstance(spanishdict_retriever, SpanishDictWebsiteScraper)
     wordreference_retriever = RetrieverFactory.create_retriever(
-        retriever_type=WordReferenceWebsiteScraper.lookup_key,
+        retriever_type=RetrieverType.WORDREFERENCE,
         language_from=Language.SPANISH,
         language_to=Language.ENGLISH,
     )
     assert isinstance(wordreference_retriever, WordReferenceWebsiteScraper)
-    with pytest.raises(ValueError):
-        RetrieverFactory.create_retriever(
-            retriever_type="unknown",
-            language_from=Language.SPANISH,
-            language_to=Language.ENGLISH,
-        )
 
 
 @pytest.mark.asyncio

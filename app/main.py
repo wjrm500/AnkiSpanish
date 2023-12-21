@@ -16,7 +16,12 @@ from app.constant import PrintColour as PC
 from app.dictionary import Dictionary
 from app.log import DEBUG, logger
 from app.note_creator import NoteCreator
-from app.retriever import Retriever, RetrieverFactory
+from app.retriever import (
+    Retriever,
+    RetrieverFactory,
+    RetrieverType,
+    valid_retriever_type,
+)
 from app.source import AnkiPackageSource, CSVSource, SimpleSource, Source
 
 
@@ -186,9 +191,10 @@ def main() -> None:
     retriever_group.add_argument(
         "-rt",
         "--retriever-type",
-        type=str,
+        type=valid_retriever_type,
         required=True,
-        help="Retriever type to use. Options are 'collins', 'openai', 'spanishdict' and 'wordreference'",
+        help="Retriever type to use",
+        choices=list(RetrieverType),
     )
     retriever_group.add_argument(
         "-cm",
@@ -283,7 +289,7 @@ def main() -> None:
     if not args.output_anki_package_path:
         args.output_anki_package_path = f"{args.language_from.value}-{args.language_to.value}-{args.retriever_type}-{current_date}.apkg"
     if not args.output_anki_deck_name:
-        args.output_anki_deck_name = f"{args.language_from.value.capitalize()} to {args.language_to.value.capitalize()} ({args.retriever_type} - {current_date})"
+        args.output_anki_deck_name = f"{args.language_from.value.capitalize()} to {args.language_to.value.capitalize()} ({args.retriever_type.value.name()} - {current_date})"
 
     if args.verbose:
         logger.setLevel(DEBUG)

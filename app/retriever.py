@@ -1,6 +1,7 @@
 import abc
 import argparse
 import asyncio
+import enum
 import itertools
 import json
 import logging
@@ -35,7 +36,6 @@ class Retriever(abc.ABC):
     concise_mode: bool = False
     language_from: Language
     language_to: Language
-    lookup_key: str
     requests_made: int = 0
     session: aiohttp.ClientSession | None = None
 
@@ -52,6 +52,17 @@ class Retriever(abc.ABC):
             raise ValueError(
                 f"Language pair {self.language_from.value} -> {self.language_to.value} not supported by the {self.__class__.__name__} retriever"
             )
+
+    @staticmethod
+    def _standardize(text: str) -> str:
+        """Standardizes a given string by removing punctuation, whitespace, and capitalization."""
+        text = re.sub(r"[.,;:!?-]", "", text)
+        return text.strip().lower()
+
+    @staticmethod
+    def name() -> str:
+        """Returns the name of the retriever."""
+        raise NotImplementedError()
 
     async def start_session(self) -> None:
         """Starts an asynchronous HTTP session."""
@@ -85,36 +96,9 @@ class Retriever(abc.ABC):
         """Returns a hyperlink to a page showing more information for the translated definition."""
         return None
 
-    @staticmethod
-    def _standardize(text: str) -> str:
-        """Standardizes a given string by removing punctuation, whitespace, and capitalization."""
-        text = re.sub(r"[.,;:!?-]", "", text)
-        return text.strip().lower()
-
-    @abc.abstractmethod
     async def retrieve_translations(self, word_to_translate: str) -> list[Translation]:
         """Retrieves translations for a given word."""
         raise NotImplementedError()
-
-
-class RetrieverFactory:
-    @staticmethod
-    def create_retriever(
-        retriever_type: str,
-        language_from: Language,
-        language_to: Language,
-        concise_mode: bool = False,
-    ) -> Retriever:
-        retrievers: list[type[Retriever]] = [
-            CollinsWebsiteScraper,
-            OpenAIAPIRetriever,
-            SpanishDictWebsiteScraper,
-            WordReferenceWebsiteScraper,
-        ]
-        for retriever in retrievers:
-            if retriever.lookup_key == retriever_type:
-                return retriever(language_from, language_to, concise_mode)
-        raise ValueError(f"Unknown retriever type: {retriever_type}")
 
 
 class WebsiteScraper(Retriever, abc.ABC):
@@ -159,7 +143,6 @@ class OpenAIAPIRetriever(APIRetriever):
 
     available_language_pairs: list[tuple[Language, Language]] = []
     client: AsyncOpenAI
-    lookup_key = "openai"
     model: OpenAIModel | None = None
 
     def __init__(
@@ -171,6 +154,10 @@ class OpenAIAPIRetriever(APIRetriever):
         if not self.api_key:
             raise Exception("No OpenAI API key found - please set OPENAI_API_KEY in .env")
         self.client = AsyncOpenAI(api_key=self.api_key)
+
+    @staticmethod
+    def name() -> str:
+        return "OpenAI"
 
     def set_language_from(self) -> None:
         """
@@ -286,7 +273,10 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
         Language.ENGLISH: "en",
         Language.SPANISH: "es",
     }
-    lookup_key = "spanishdict"
+
+    @staticmethod
+    def name() -> str:
+        return "SpanishDict"
 
     def link(self, word_to_translate: str) -> str | None:
         return f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={self.lang_shortener[self.language_from]}"
@@ -415,7 +405,10 @@ class CollinsWebsiteScraper(WebsiteScraper):
         (Language.SPANISH, Language.ENGLISH),
     ]
     base_url = "https://www.collinsdictionary.com/dictionary"
-    lookup_key = "collins"
+
+    @staticmethod
+    def name() -> str:
+        return "Collins"
 
     def link(self, word_to_translate: str) -> str | None:
         return f"{self.base_url}/{self.language_from.value}-{self.language_to.value}/{self._standardize(word_to_translate)}"
@@ -506,7 +499,10 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
         Language.PORTUGUESE: "pt",
         Language.SPANISH: "es",
     }
-    lookup_key = "wordreference"
+
+    @staticmethod
+    def name() -> str:
+        return "WordReference"
 
     def link(self, word_to_translate: str) -> str | None:
         if (self.language_from, self.language_to) == (Language.ENGLISH, Language.SPANISH):
@@ -591,11 +587,39 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
         return translations[:3] if self.concise_mode else translations
 
 
+class RetrieverType(enum.Enum):
+    COLLINS = CollinsWebsiteScraper
+    OPENAI = OpenAIAPIRetriever
+    SPANISHDICT = SpanishDictWebsiteScraper
+    WORDREFERENCE = WordReferenceWebsiteScraper
+
+    def __str__(self) -> str:
+        return self.name.lower()
+
+
+class RetrieverFactory:
+    @staticmethod
+    def create_retriever(
+        retriever_type: RetrieverType,
+        language_from: Language,
+        language_to: Language,
+        concise_mode: bool = False,
+    ) -> Retriever:
+        return retriever_type.value(language_from, language_to, concise_mode)  # type: ignore[no-any-return]
+
+
+def valid_retriever_type(retriever_type: str) -> RetrieverType:
+    try:
+        return RetrieverType[retriever_type.upper()]
+    except KeyError:
+        raise argparse.ArgumentTypeError(f"Invalid retriever type: {retriever_type}")
+
+
 async def main(
     word_to_translate: str = "hello",
     language_from: Language = Language.ENGLISH,
     language_to: Language = Language.SPANISH,
-    retriever_type: str = SpanishDictWebsiteScraper.lookup_key,
+    retriever_type: RetrieverType = RetrieverType.SPANISHDICT,
     concise_mode: bool = False,
 ) -> None:
     """
@@ -651,9 +675,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "-rt",
         "--retriever-type",
-        type=str,
-        default=SpanishDictWebsiteScraper.lookup_key,
-        help="Retriever type to use. Options are 'collins', 'openai', 'spanishdict' and 'wordreference'",
+        type=valid_retriever_type,
+        default=RetrieverType.SPANISHDICT,
+        help="Retriever type to use",
+        choices=list(RetrieverType),
     )
     parser.add_argument(
         "-cm",
