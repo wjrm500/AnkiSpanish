@@ -78,8 +78,6 @@ You can enter words from a CSV by specifying the path to the CSV file in the arg
 
 By default, the source expects (A) that there is no header row containing column names and (B) that the words appear in the first column. If this is not the case for your CSV file, you can configure the source to skip the first row with the `--skip-first-row` argument or take the words from a different column using the `--col-num` argument (column numbers use [zero-indexing](https://en.wikipedia.org/wiki/Zero-based_numbering)).
 
-For your convenience, a CSV contaning a list of 5,000 of the most common English words, extracted from the [Oxford 5000](https://www.oxfordlearnersdictionaries.com/wordlists/oxford3000-5000) list, has been included in this repository: `oxford_5000.csv`.
-
 ### Sources - existing Anki deck
 
 You can enter words from an existing Anki deck by specifying the arguments `--input-anki-package-path`, `--input-anki-deck-name` and `--input-anki-field-name`, e.g.,:
@@ -161,6 +159,12 @@ If you are interested in the inner workings of the application, feel free to che
 Arguments not explicitly mentioned so far include `--concurrency-limit`, `--output-anki-package-path`, `--output-anki-deck-name`, `--note-limit` and `--verbose`. For more information on these and a comprehensive list of all available arguments, please run:
 
 `lexideck --help`
+
+For your convenience, several resources not directly needed for the running or development of the application have been included in this repository:
+- A CSV contaning a list of 5,000 of the most common English words, extracted from the [Oxford 5000](https://www.oxfordlearnersdictionaries.com/wordlists/oxford3000-5000) list: `resources/oxford_5000.csv`.
+- The A Frequency Dictionary of Spanish deck: `resources/A_Frequency_Dictionary_of_Spanish.apkg`.
+- A ready-to-study English to Spanish deck created using LexiDeck: `resources/english-spanish-spanishdict-2023-12-21.apkg`
+- A ready-to-study Spanish to English deck created using LexiDeck: `resources/spanish-english-spanishdict-2023-12-21.apkg`
 
 # Get involved
 
