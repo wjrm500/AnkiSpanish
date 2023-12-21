@@ -22,6 +22,9 @@ class Language(enum.Enum):
     PORTUGUESE = "portuguese"
     SPANISH = "spanish"
 
+    def __str__(self) -> str:
+        return self.value
+
     @staticmethod
     def options() -> list[str]:
         return [v.value for v in Language.__members__.values()]
