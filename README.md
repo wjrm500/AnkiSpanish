@@ -166,6 +166,8 @@ Arguments not explicitly mentioned so far include `--concurrency-limit`, `--outp
 
 This project is completely open source and contributions are welcome! Just open a pull request and write a concise description of the change you've made and why, and I'll take a look. Off the top of my head, I would be interested to see:
 
+- A simple GUI
+- Packaging the application as a self-contained executable
 - New sources that ingest words from databases
 - Improvements to the accuracy and robustness of existing retrievers
 - New retrievers, preferably web scrapers for online dictionaries, although API-based retrievers could also be interesting
