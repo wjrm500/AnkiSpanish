@@ -2,7 +2,7 @@
 SETLOCAL
 
 REM Define the path to the virtual environment activation script
-SET "VENV_PATH=.\venv-dev\Scripts\activate.bat"
+SET "VENV_PATH=.\venv\Scripts\activate.bat"
 
 REM Activate the virtual environment
 echo Activating virtual environment...
