@@ -10,6 +10,18 @@ from genanki import Deck, Model, Note
 from app.constant import PrintColour as PC
 
 
+class AudioAnkiNote(Note):  # type: ignore
+    """
+    A custom extension to the genanki library that allows for the creation of notes with audio
+    """
+
+    audio_filepaths: list[str]
+
+    def __init__(self, *args, audio_filepaths: list[str] = [], **kwargs) -> None:  # type: ignore
+        super().__init__(*args, **kwargs)
+        self.audio_filepaths = audio_filepaths
+
+
 def load_decks_from_package(apkg_filepath: str) -> list[Deck]:
     """
     A custom extension to the genanki library that allows for the loading of Anki decks from .apkg

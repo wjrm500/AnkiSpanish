@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import glob
 import os
 import random
 import re
@@ -13,6 +14,7 @@ from setuptools_scm import get_version
 
 from app.constant import PrintColour as PC
 from app.dictionary import Dictionary
+from app.genanki_extension import AudioAnkiNote
 from app.language import Language
 from app.log import DEBUG, logger
 from app.note_creator import NoteCreator
@@ -54,6 +56,7 @@ async def create_deck(
     words_to_translate: list[str],
     retriever: Retriever,
     concurrency_limit: int = 1,
+    audio: bool = False,
     note_limit: int = 0,
     output_anki_package_path: str = "output.apkg",
     output_anki_deck_name: str = "Language learning flashcards",
@@ -70,6 +73,7 @@ async def create_deck(
         deck_id=deck_id,
         dictionary=Dictionary(retriever=retriever),
         concurrency_limit=concurrency_limit,
+        audio=audio,
     )
     logger.info(f"Processing {len(words_to_translate)} words")
     tasks: list[asyncio.Task[list[AnkiNote]]] = []
@@ -115,12 +119,18 @@ async def create_deck(
         f"Creating Anki deck '{output_anki_deck_name}' (ID {deck_id}) with {len(all_new_notes)} notes"
     )
     deck = AnkiDeck(deck_id, output_anki_deck_name)
+    audio_filepaths = []
     for new_note in all_new_notes:
+        if audio:
+            assert isinstance(new_note, AudioAnkiNote)
+            audio_filepaths.extend(new_note.audio_filepaths)
         deck.add_note(note=new_note)
         logger.debug(
             f"Created note for translation {PC.CYAN}{new_note.fields[1]} ({new_note.fields[3]}){PC.RESET}"
         )
-    AnkiPackage(deck).write_to_file(output_anki_package_path)
+    package = AnkiPackage(deck, media_files=audio_filepaths)
+    package.write_to_file(output_anki_package_path)
+    [os.remove(f) for f in glob.glob(f"audio-{deck_id}*")]  # type: ignore[func-returns-value]
     logger.info(f"Processing complete. Total web requests made: {retriever.requests_made}")
 
 
@@ -212,6 +222,11 @@ def main() -> None:
         default=1,
         help="Number of coroutines to run concurrently when fetching data. Minimum of 1, maximum of 5. Defaults to 1",
     )
+    note_creator_group.add_argument(
+        "--audio",
+        action="store_true",
+        help="Include audio in notes. This will increase the time taken to create notes.",
+    )
 
     # Output arguments
     output_group = parser.add_argument_group(title="Output arguments")
@@ -299,6 +314,7 @@ def main() -> None:
             words,
             retriever,
             args.concurrency_limit,
+            args.audio,
             args.note_limit,
             args.output_anki_package_path,
             args.output_anki_deck_name,

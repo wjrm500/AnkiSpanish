@@ -9,6 +9,7 @@ beautifulsoup4==4.12.2
 black==23.12.0
 cached-property==1.5.2
 certifi==2023.11.17
+charset-normalizer==3.3.2
 chevron==0.14.0
 click==8.1.7
 colorama==0.4.6
@@ -17,6 +18,7 @@ flake8==6.1.0
 frozendict==2.3.10
 frozenlist==1.4.1
 genanki==0.13.1
+gtts==2.5.0
 h11==0.14.0
 httpcore==1.0.2
 httpx==0.25.2
@@ -43,6 +45,7 @@ pytest-asyncio==0.23.2
 python-dotenv==1.0.0
 PyYAML==6.0.1
 regex==2023.10.3
+requests==2.31.0
 setuptools-scm==8.0.4
 sniffio==1.3.0
 soupsieve==2.5
@@ -50,4 +53,5 @@ tqdm==4.66.1
 types-beautifulsoup4==4.12.0.7
 types-html5lib==1.1.11.15
 typing_extensions==4.9.0
+urllib3==2.1.0
 yarl==1.9.4

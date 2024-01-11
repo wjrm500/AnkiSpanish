@@ -1,10 +1,14 @@
 import asyncio
+import logging
+from itertools import zip_longest
 
 from genanki import Model as AnkiModel
 from genanki import Note as AnkiNote
+from gtts import gTTS
 
 from app.dictionary import Dictionary
 from app.exception import RateLimitException, RedirectException
+from app.genanki_extension import AudioAnkiNote
 from app.language_element import Translation
 from app.log import logger
 
@@ -17,14 +21,14 @@ model = AnkiModel(
         {"name": "word_to_translate_html"},
         {"name": "part_of_speech"},
         {"name": "definition_html"},
-        {"name": "source_sentences"},
-        {"name": "target_sentences"},
+        {"name": "source_sentences_html"},
+        {"name": "target_sentences_html"},
     ],
     templates=[
         {
             "name": "Card 1",
-            "qfmt": "<div style='text-align:center;'><span style='font-size:20px; font-weight:bold'>{{word_to_translate_html}}</span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences}}</div>",
-            "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition_html}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences}}</div>",
+            "qfmt": "<div style='text-align:center;'><span style='font-size:20px; font-weight:bold'>{{word_to_translate_html}}</span> <span style='color:gray;'>({{part_of_speech}})</span></div><br><div style='font-size:18px; text-align:center;'>{{source_sentences_html}}</div>",
+            "afmt": "{{FrontSide}}<hr><div style='font-size:18px; font-weight:bold; text-align:center;'>{{definition_html}}</div><br><div style='font-size:18px; text-align:center;'>{{target_sentences_html}}</div>",
         }
     ],
 )
@@ -38,6 +42,7 @@ class NoteCreator:
     object.
     """
 
+    audio: bool
     deck_id: int
     dictionary: Dictionary
     rate_limit_event: asyncio.Event
@@ -48,7 +53,13 @@ class NoteCreator:
     redirect_lock: asyncio.Lock
     redirect_count: int
 
-    def __init__(self, deck_id: int, dictionary: Dictionary, concurrency_limit: int = 1) -> None:
+    def __init__(
+        self,
+        deck_id: int,
+        dictionary: Dictionary,
+        concurrency_limit: int = 1,
+        audio: bool = False,
+    ) -> None:
         self.deck_id = deck_id
         self.dictionary = dictionary
         self.rate_limit_event = asyncio.Event()
@@ -60,29 +71,69 @@ class NoteCreator:
         self.semaphore = asyncio.Semaphore(adjusted_concurrency_limit)
         self.redirect_lock = asyncio.Lock()
         self.redirect_count = 0
+        self.audio = audio
 
-    def _combine_sentences(self, sentences: list[str]) -> str:
+    def _source_sentences_html(self, translation: Translation) -> str:
         """
         Combines a list of sentences into a single piece of HTML, with each sentence on a new line
         and prefixed with its index in dark gray font.
         """
-        if len(sentences) == 1:
-            return sentences[0]
+        source_sentences = []
+        for definition in translation.definitions:
+            source_sentences.append(definition.sentence_pairs[0].source_sentence)
+        if len(source_sentences) == 1:
+            return source_sentences[0]
         else:
             return "<br>".join(
                 [
                     f"<span style='color: darkgray'>[{i}]</span> {s}"
-                    for i, s in enumerate(sentences, 1)
+                    for i, s in enumerate(source_sentences, 1)
                 ]
+            )
+
+    def _target_sentences_html(self, translation: Translation) -> tuple[str, list[str]]:
+        """
+        Combines a list of sentences into a single piece of HTML, with each sentence on a new line
+        and prefixed with its index in dark gray font. Also adds audio if enabled and returns a list
+        of audio filepaths to be saved on the note.
+        """
+        target_sentences, audio_filepaths = [], []
+        for definition in translation.definitions:
+            target_sentence = definition.sentence_pairs[0].target_sentence
+            target_sentences.append(target_sentence)
+            if self.audio and translation.retriever:
+                logging.disable(logging.CRITICAL)
+                tts = gTTS(text=target_sentence, lang=translation.retriever.language_to.iso_code)
+                audio_filepath = f"audio-{self.deck_id}-{translation.word_to_translate}-{translation.part_of_speech}-{definition.text}.mp3"
+                audio_filepath = audio_filepath.replace(" ", "_")
+                audio_filepaths.append(audio_filepath)
+                tts.save(audio_filepath)
+                logging.disable(logging.NOTSET)
+        if len(target_sentences) == 1:
+            return (
+                f"{target_sentences[0]} [sound:{audio_filepaths[0]}]"
+                if audio_filepaths
+                else target_sentences[0]
+            ), audio_filepaths
+        else:
+            return (
+                "<br>".join(
+                    [
+                        (
+                            f"<span style='color: darkgray'>[{i}]</span> {sentence} [sound:{audio_filepath}]"
+                            if audio_filepath
+                            else f"<span style='color: darkgray'>[{i}]</span> {sentence}"
+                        )
+                        for i, (sentence, audio_filepath) in enumerate(
+                            zip_longest(target_sentences, audio_filepaths), 1
+                        )
+                    ]
+                ),
+                audio_filepaths,
             )
 
     def _create_note_from_translation(self, translation: Translation) -> AnkiNote:
         """Creates an AnkiNote object from a given Translation object."""
-        source_sentences, target_sentences = [], []
-        for definition in translation.definitions:
-            source_sentences.append(definition.sentence_pairs[0].source_sentence)
-            target_sentences.append(definition.sentence_pairs[0].target_sentence)
-
         word_to_translate_html = (
             (
                 f"<a href='{lang_from_url}' style='color:red;'>{translation.word_to_translate}</a>"
@@ -103,6 +154,7 @@ class NoteCreator:
                     continue
             definition_html_components.append(definition.text)
         definition_html = ", ".join(definition_html_components)
+        target_sentences_html, audio_filepaths = self._target_sentences_html(translation)
         field_dict = {
             "deck_id": str(
                 self.deck_id
@@ -111,13 +163,16 @@ class NoteCreator:
             "word_to_translate_html": word_to_translate_html,
             "part_of_speech": translation.part_of_speech,
             "definition_html": definition_html,
-            "source_sentences": self._combine_sentences(source_sentences),
-            "target_sentences": self._combine_sentences(target_sentences),
+            "source_sentences_html": self._source_sentences_html(translation),
+            "target_sentences_html": target_sentences_html,
         }
-        return AnkiNote(
-            model=model,
-            fields=list(field_dict.values()),
-        )
+        if self.audio:
+            return AudioAnkiNote(
+                model=model,
+                fields=list(field_dict.values()),
+                audio_filepaths=audio_filepaths,
+            )
+        return AnkiNote(model=model, fields=list(field_dict.values()))
 
     async def create_notes(self, word_to_translate: str) -> list[AnkiNote]:
         """

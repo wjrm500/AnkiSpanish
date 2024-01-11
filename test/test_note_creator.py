@@ -23,8 +23,8 @@ def field_keys() -> list[str]:
         "word_to_translate_html",
         "part_of_speech",
         "definition_html",
-        "source_sentences",
-        "target_sentences",
+        "source_sentences_html",
+        "target_sentences_html",
     ]
 
 
@@ -77,17 +77,30 @@ def translation(retriever: Retriever) -> Translation:
     )
 
 
-def test_combine_sentences_single_sentence(note_creator: NoteCreator) -> None:
-    sentences = ["This is a test sentence."]
-    combined = note_creator._combine_sentences(sentences)
-    assert combined == "This is a test sentence."
+def test_source_sentences_html_single_definition(
+    note_creator: NoteCreator, translation: Translation
+) -> None:
+    html = note_creator._source_sentences_html(translation)
+    assert html == "Source sentence"
 
 
-def test_combine_sentences_multiple_sentences(note_creator: NoteCreator) -> None:
-    sentences = ["First sentence.", "Second sentence."]
-    expected_combined = "<span style='color: darkgray'>[1]</span> First sentence.<br><span style='color: darkgray'>[2]</span> Second sentence."
-    combined = note_creator._combine_sentences(sentences)
-    assert combined == expected_combined
+def test_source_sentences_html_multiple_definitions(
+    note_creator: NoteCreator, translation: Translation
+) -> None:
+    translation.definitions.append(
+        Definition(
+            text="test2",
+            sentence_pairs=[
+                SentencePair(
+                    source_sentence="Source sentence 2", target_sentence="Target sentence 2"
+                ),
+            ],
+        ),
+    )
+    html = note_creator._source_sentences_html(translation)
+    translation.definitions.pop()  # Remove the second definition so it doesn't affect other tests
+    expected_html = "<span style='color: darkgray'>[1]</span> Source sentence<br><span style='color: darkgray'>[2]</span> Source sentence 2"
+    assert html == expected_html
 
 
 def test_create_note_from_translation(
