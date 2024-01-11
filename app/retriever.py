@@ -18,9 +18,10 @@ from bs4.element import Tag
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
-from app.constant import OPENAI_SYSTEM_PROMPT, OPENAI_USER_PROMPT, Language, OpenAIModel
+from app.constant import OPENAI_SYSTEM_PROMPT, OPENAI_USER_PROMPT, OpenAIModel
 from app.constant import PrintColour as PC
 from app.exception import RateLimitException, RedirectException
+from app.language import Language
 from app.language_element import Definition, SentencePair, Translation
 
 
@@ -50,7 +51,7 @@ class Retriever(abc.ABC):
             and (self.language_from, self.language_to) not in self.available_language_pairs
         ):
             raise ValueError(
-                f"Language pair {self.language_from.value} -> {self.language_to.value} not supported by the {self.__class__.__name__} retriever"
+                f"Language pair {self.language_from.language_name} -> {self.language_to.language_name} not supported by the {self.__class__.__name__} retriever"
             )
 
     @staticmethod
@@ -165,7 +166,7 @@ class OpenAIAPIRetriever(APIRetriever):
         """
         while True:
             try:
-                self.language_from = Language(
+                self.language_from = Language.from_language_name(
                     input(
                         f"Enter the language of the words being translated. Options are: {', '.join(Language.options())}\n"
                     )
@@ -209,15 +210,15 @@ class OpenAIAPIRetriever(APIRetriever):
                     {
                         "role": "system",
                         "content": OPENAI_SYSTEM_PROMPT.format(
-                            language_from=self.language_from.value,
-                            language_to=self.language_to.value,
+                            language_from=self.language_from,
+                            language_to=self.language_to,
                         ),
                     },
                     {
                         "role": "user",
                         "content": OPENAI_USER_PROMPT.format(
-                            language_from=self.language_from.value,
-                            language_to=self.language_to.value,
+                            language_from=self.language_from,
+                            language_to=self.language_to,
                             word_to_translate=word_to_translate,
                         ),
                     },
@@ -269,20 +270,16 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
         (Language.SPANISH, Language.ENGLISH),
     ]
     base_url: str = "https://www.spanishdict.com"
-    lang_shortener = {
-        Language.ENGLISH: "en",
-        Language.SPANISH: "es",
-    }
 
     @staticmethod
     def name() -> str:
         return "SpanishDict"
 
     def link(self, word_to_translate: str) -> str | None:
-        return f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={self.lang_shortener[self.language_from]}"
+        return f"{self.base_url}/translate/{self._standardize(word_to_translate)}?langFrom={self.language_from.iso_code}"
 
     def reverse_link(self, definition: str) -> str | None:
-        return f"{self.base_url}/translate/{self._standardize(definition)}?langFrom={self.lang_shortener[self.language_to]}"
+        return f"{self.base_url}/translate/{self._standardize(definition)}?langFrom={self.language_to.iso_code}"
 
     def _get_translation_from_part_of_speech_div(
         self, word_to_translate: str, part_of_speech_div: Tag
@@ -312,10 +309,10 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
                 marker_tag_parent = marker_tag.parent
                 marker_tag_grandparent = marker_tag_parent.parent  # type: ignore[union-attr]
                 source_sentence_span = marker_tag_grandparent.find(  # type: ignore[union-attr]
-                    "span", {"lang": self.lang_shortener[self.language_from]}
+                    "span", {"lang": self.language_from.iso_code}
                 )
                 target_sentence_span = marker_tag_grandparent.find(  # type: ignore[union-attr]
-                    "span", {"lang": self.lang_shortener[self.language_to]}
+                    "span", {"lang": self.language_to.iso_code}
                 )
                 if not source_sentence_span or not target_sentence_span:
                     continue
@@ -350,18 +347,18 @@ class SpanishDictWebsiteScraper(WebsiteScraper):
         then creating a separate Translation object for each part of speech listed in the
         "Dictionary" pane.
         """
-        lang_from = self.lang_shortener[self.language_from]
+        lang_from = self.language_from.iso_code
         try:
             soup = await self._get_soup(self.link(word_to_translate))
         except ValueError:
             raise ValueError(
-                f"URL redirect occurred for '{word_to_translate}' - are you sure it is a valid {self.language_from.value.title()} word?"
+                f"URL redirect occurred for '{word_to_translate}' - are you sure it is a valid {self.language_from.language_name.title()} word?"
             )
         word_to_translate = soup.find("h1", class_="MskJYfNq").text  # type: ignore[union-attr]
         dictionary_neodict_div = soup.find("div", id=f"dictionary-neodict-{lang_from}")
         if not dictionary_neodict_div:
             raise ValueError(
-                f"Could not parse translation data for '{word_to_translate}' - are you sure it is a valid {self.language_from.value.title()} word?"
+                f"Could not parse translation data for '{word_to_translate}' - are you sure it is a valid {self.language_from.language_name.title()} word?"
             )
         part_of_speech_divs = dictionary_neodict_div.find_all(  # type: ignore[union-attr]
             class_="W4_X2sG1"
@@ -411,10 +408,10 @@ class CollinsWebsiteScraper(WebsiteScraper):
         return "Collins"
 
     def link(self, word_to_translate: str) -> str | None:
-        return f"{self.base_url}/{self.language_from.value}-{self.language_to.value}/{self._standardize(word_to_translate)}"
+        return f"{self.base_url}/{self.language_from.language_name}-{self.language_to.language_name}/{self._standardize(word_to_translate)}"
 
     def reverse_link(self, definition: str) -> str | None:
-        return f"{self.base_url}/{self.language_to.value}-{self.language_from.value}/{self._standardize(definition)}"
+        return f"{self.base_url}/{self.language_to.language_name}-{self.language_from.language_name}/{self._standardize(definition)}"
 
     def _get_translation_from_part_of_speech_div(
         self, word_to_translate: str, part_of_speech_div: Tag
@@ -491,14 +488,6 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
         (Language.SPANISH, Language.PORTUGUESE),
     ]
     base_url = "https://www.wordreference.com"
-    lang_shortener = {
-        Language.ENGLISH: "en",
-        Language.FRENCH: "fr",
-        Language.GERMAN: "de",
-        Language.ITALIAN: "it",
-        Language.PORTUGUESE: "pt",
-        Language.SPANISH: "es",
-    }
 
     @staticmethod
     def name() -> str:
@@ -511,14 +500,14 @@ class WordReferenceWebsiteScraper(WebsiteScraper):
             return (
                 f"{self.base_url}/es/en/translation.asp?spen={self._standardize(word_to_translate)}"
             )
-        return f"{self.base_url}/{self.lang_shortener[self.language_from]}{self.lang_shortener[self.language_to]}/{self._standardize(word_to_translate)}"
+        return f"{self.base_url}/{self.language_from.iso_code}{self.language_to.iso_code}/{self._standardize(word_to_translate)}"
 
     def reverse_link(self, definition: str) -> str | None:
         if (self.language_from, self.language_to) == (Language.ENGLISH, Language.SPANISH):
             return f"{self.base_url}/es/en/translation.asp?spen={self._standardize(definition)}"
         elif (self.language_from, self.language_to) == (Language.SPANISH, Language.ENGLISH):
             return f"{self.base_url}/es/translation.asp?tranword={self._standardize(definition)}"
-        return f"{self.base_url}/{self.lang_shortener[self.language_from]}{self.lang_shortener[self.language_to]}/{self._standardize(definition)}"
+        return f"{self.base_url}/{self.language_from.iso_code}{self.language_to.iso_code}/{self._standardize(definition)}"
 
     def _from_word_from_FrWrd_tag(self, FrWrd_tag: Tag) -> str:
         decompose_tags: list[Tag] = FrWrd_tag.find_all(["a", "span"])
@@ -659,7 +648,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-lf",
         "--language-from",
-        type=Language,
+        type=Language.from_language_name,
         default=Language.ENGLISH,
         help="Language to translate from",
         choices=list(Language),
@@ -667,7 +656,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-lt",
         "--language-to",
-        type=Language,
+        type=Language.from_language_name,
         default=Language.SPANISH,
         help="Language to translate to",
         choices=list(Language),

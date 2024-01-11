@@ -14,22 +14,6 @@ class PrintColour(enum.Enum):
         return self.value
 
 
-class Language(enum.Enum):
-    ENGLISH = "english"
-    FRENCH = "french"
-    GERMAN = "german"
-    ITALIAN = "italian"
-    PORTUGUESE = "portuguese"
-    SPANISH = "spanish"
-
-    def __str__(self) -> str:
-        return self.value
-
-    @staticmethod
-    def options() -> list[str]:
-        return [v.value for v in Language.__members__.values()]
-
-
 class OpenAIModel(enum.Enum):
     GPT_3_5_TURBO = "gpt-3.5-turbo"
     GPT_4_TURBO = "gpt-4-1106-preview"

@@ -8,7 +8,8 @@ import pytest
 from aioresponses import aioresponses
 from bs4 import BeautifulSoup
 
-from app.constant import Language, OpenAIModel
+from app.constant import OpenAIModel
+from app.language import Language
 from app.language_element import Definition, SentencePair, Translation
 from app.retriever import (
     CollinsWebsiteScraper,

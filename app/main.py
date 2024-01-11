@@ -11,9 +11,9 @@ from genanki import Note as AnkiNote
 from genanki import Package as AnkiPackage
 from setuptools_scm import get_version
 
-from app.constant import Language
 from app.constant import PrintColour as PC
 from app.dictionary import Dictionary
+from app.language import Language
 from app.log import DEBUG, logger
 from app.note_creator import NoteCreator
 from app.retriever import (
@@ -175,7 +175,7 @@ def main() -> None:
     retriever_group.add_argument(
         "-lf",
         "--language-from",
-        type=Language,
+        type=Language.from_language_name,
         required=True,
         help="Language to translate from",
         choices=list(Language),
@@ -183,7 +183,7 @@ def main() -> None:
     retriever_group.add_argument(
         "-lt",
         "--language-to",
-        type=Language,
+        type=Language.from_language_name,
         required=True,
         help="Language to translate to",
         choices=list(Language),
@@ -287,9 +287,9 @@ def main() -> None:
 
     current_date = datetime.now().strftime("%Y-%m-%d")
     if not args.output_anki_package_path:
-        args.output_anki_package_path = f"{args.language_from.value}-{args.language_to.value}-{args.retriever_type}-{current_date}.apkg"
+        args.output_anki_package_path = f"{args.language_from.language_name}-{args.language_to.language_name}-{args.retriever_type}-{current_date}.apkg"
     if not args.output_anki_deck_name:
-        args.output_anki_deck_name = f"{args.language_from.value.capitalize()} to {args.language_to.value.capitalize()} ({args.retriever_type.value.name()} - {current_date})"
+        args.output_anki_deck_name = f"{args.language_from.language_name.capitalize()} to {args.language_to.language_name.capitalize()} ({args.retriever_type.value.name()} - {current_date})"
 
     if args.verbose:
         logger.setLevel(DEBUG)
